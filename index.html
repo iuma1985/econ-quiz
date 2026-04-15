@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>經濟學題庫</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body, #root { width: 100%; min-height: 100vh; min-height: 100dvh; overflow-x: hidden; }
+    body { background: #0f1923; }
+    button { -webkit-appearance: none; }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    // Storage polyfill (uses localStorage in standalone mode)
+    if (!window.storage) {
+      window.storage = {
+        async get(key) {
+          const v = localStorage.getItem(key);
+          return v !== null ? { key, value: v } : null;
+        },
+        async set(key, value) {
+          localStorage.setItem(key, value);
+          return { key, value };
+        },
+        async delete(key) {
+          localStorage.removeItem(key);
+          return { key, deleted: true };
+        }
+      };
+    }
+
+const DEFAULT_QUESTIONS = [
+  { id:1, scope:"期中", category:"Ch1 經濟學概論", question:"經濟學的主要目的是研究下列何者？", options:["中央計畫", "政府的管制", "如何處理稀少的資源", "商業活動"], answer:2, explanation:"" },
+  { id:2, scope:"期中", category:"Ch1 經濟學概論", question:"當一個商品的價格為零，不需付出代價就能取得，此財貨為：", options:["正常財", "自由財", "劣等財", "經濟財"], answer:1, explanation:"" },
+  { id:3, scope:"期中", category:"Ch1 經濟學概論", question:"當面臨工作與休閒的選擇問題，如果選擇休閒，則休閒的機會成本是下列何者？", options:["商品價格", "休閒活動的支出", "財富", "工資率"], answer:3, explanation:"" },
+  { id:4, scope:"期中", category:"Ch1 經濟學概論", question:"一個人進入大學求學的機會成本為：", options:["大學學費", "零", "食衣住行的總花費", "替代上大學的其他選擇中價值最高者"], answer:3, explanation:"" },
+  { id:5, scope:"期中", category:"Ch1 經濟學概論", question:"下列有關生產可能曲線向外凸的原因，何者正確？", options:["機會成本先遞增後遞減", "機會成本先遞減後遞增", "機會成本遞減", "機會成本遞增"], answer:3, explanation:"" },
+  { id:6, scope:"期中", category:"Ch1 經濟學概論", question:"下列何種情況發生會使得生產可能曲線向外移動？", options:["規模報酬遞減", "國內產業外移國外", "引進外籍勞工", "邊際機會成本遞增"], answer:2, explanation:"" },
+  { id:7, scope:"期中", category:"Ch1 經濟學概論", question:"生產可能曲線無法反映下列哪個概念？", options:["生產效率", "機會成本", "供需均衡", "資源稀少"], answer:2, explanation:"" },
+  { id:8, scope:"期中", category:"Ch1 經濟學概論", question:"當經濟出現成長，生產可能曲線會如何移動？", options:["在生產可能曲線上點的移動", "從生產可能曲線內的點移動到生產可能曲線之上", "生產可能曲線向原點移動", "生產可能曲線右移"], answer:3, explanation:"" },
+  { id:9, scope:"期中", category:"Ch1 經濟學概論", question:"若整條生產可能曲線向內移動，代表：", options:["產業技術進步", "貨幣數量減少", "資本移至國外", "生育率上升"], answer:2, explanation:"" },
+  { id:10, scope:"期中", category:"Ch1 經濟學概論", question:"當一個社會的生產組合點落在生產可能曲線內，表示：", options:["生產已達最大產能", "有部分生產要素閒置", "生產有效率", "技術進步"], answer:1, explanation:"" },
+  { id:11, scope:"期中", category:"Ch1 經濟學概論", question:"當一個社會具有生產的經濟效率，是指其所有的生產組合點會落在：", options:["生產可能曲線外", "生產可能曲線內", "生產可能曲線上", "原點"], answer:2, explanation:"" },
+  { id:12, scope:"期中", category:"Ch1 經濟學概論", question:"落在「生產可能曲線」線上的各生產組合點代表：", options:["產量最大", "追求利潤最大", "消費是有效率的", "生產是有效率的"], answer:3, explanation:"" },
+  { id:13, scope:"期中", category:"Ch1 經濟學概論", question:"假設其他因素不變，會造成生產可能曲線外移的可能原因為何？", options:["生產要素維持不變", "技術進步創新發明", "政府管制價格", "開放出口"], answer:1, explanation:"" },
+  { id:14, scope:"期中", category:"Ch1 經濟學概論", question:"對於個體經濟學的敘述，以下何者是錯誤的？", options:["核心問題是市場價格", "研究對象是消費者", "基本假設是市場存在失業", "追求效用的極大化"], answer:2, explanation:"" },
+  { id:15, scope:"期中", category:"Ch1 經濟學概論", question:"對於總體經濟學的敘述，以下何者是錯誤的？", options:["核心問題是國民所得", "研究對象是整個經濟體", "基本假設是市場存在失業", "追求消費效用的極大化"], answer:3, explanation:"" },
+  { id:16, scope:"期中", category:"Ch1 經濟學概論", question:"所謂「有效率的生產」是指以下何者？", options:["經濟體系內的產出分配是有效率的", "經濟體系的產出及運作落在生產可能曲線上", "經濟體系內所生產的商品和勞務的組合，反映了消費者的偏好", "經濟體系內的產出分配是公平的"], answer:1, explanation:"" },
+  { id:17, scope:"期中", category:"Ch1 經濟學概論", question:"已知你唸研究所兩年的總支出為30 萬元，且有全額獎學金。但如果你將讀完臺大國企所碩士的兩年時間挪作其他用途，你還有以下選擇：當家教，並獲得80 萬元淨收益；花費40 萬元環遊世界名勝古蹟，但你感覺過程中的滿足程度相當於140萬元；談戀愛，雖然沒有收入，但完成你多年的希望，值得200萬元。根據上述，請問你唸研究所碩士班的個人「機會成本」為何？", options:["0 萬元", "30 萬元", "80 萬元", "200 萬元"], answer:3, explanation:"" },
+  { id:18, scope:"期中", category:"Ch1 經濟學概論", question:"「生產可能曲線」凹向原點的原因為何？", options:["生產成本遞增", "生產成本遞減", "機會成本遞增", "機會成本遞減"], answer:2, explanation:"" },
+  { id:19, scope:"期中", category:"Ch1 經濟學概論", question:"生產可能曲線的斜率由下列何者決定？", options:["是否採用最具效率的方式來生產", "市場上各種商品的價格", "多生產一單位橫軸商品的機會成本", "該經濟體系的所得分配狀況"], answer:2, explanation:"" },
+  { id:20, scope:"期中", category:"Ch1 經濟學概論", question:"以下選項何者不屬於總體經濟學所要探討的範圍？", options:["勞動失業率攀升", "國家經濟成長率", "手機價格的變化", "匯率與國際貿易收支。 **"], answer:2, explanation:"" },
+  { id:21, scope:"期中", category:"Ch2 需求與供給", question:"受到金融海嘯的影響，大部分民眾皆減少旅遊與外食次數，使得觀光業的：", options:["市場供給曲線左移", "市場供給曲線右移", "市場需求曲線右移", "市場需求曲線左移"], answer:3, explanation:"" },
+  { id:22, scope:"期中", category:"Ch2 需求與供給", question:"下列何者是需求法則的例外？", options:["季芬財", "中性財", "必需品", "奢侈財"], answer:0, explanation:"" },
+  { id:23, scope:"期中", category:"Ch2 需求與供給", question:"下列有關季芬財之特性，何者正確？", options:["價格上升，需求量下跌", "價格上升，需求量增加", "需求彈性小於一", "需求彈性大於一"], answer:1, explanation:"" },
+  { id:24, scope:"期中", category:"Ch2 需求與供給", question:"下列哪一項不是影響需求的因素？", options:["產品自身價格", "預期價格", "互補品價格", "替代品價格"], answer:0, explanation:"" },
+  { id:25, scope:"期中", category:"Ch2 需求與供給", question:"當預期某一商品未來的價格會上漲時，下列哪一個敘述是正確的？", options:["市場需求會減少", "市場交易量必然會減少", "市場需求會增加", "市場供給會增加"], answer:2, explanation:"" },
+  { id:26, scope:"期中", category:"Ch2 需求與供給", question:"以下哪一個因素的改變會引起需求量的變動？", options:["消費者偏好", "產品本身價格", "替代性產品價格", "消費者所得"], answer:1, explanation:"" },
+  { id:27, scope:"期中", category:"Ch2 需求與供給", question:"下列關於需求的敘述，何者錯誤？", options:["需求曲線是給定其他條件下，價格與需求量之間的函數關係", "一般而言，需求曲線是負斜率", "一般而言，價格愈高需求量愈少", "指消費者願意而且能夠買到的數量"], answer:3, explanation:"" },
+  { id:28, scope:"期中", category:"Ch2 需求與供給", question:"以下何種況狀將會使得手機的消費者剩餘減少？", options:["政府設定手機的價格上限", "手機的價格上升", "手機的價格下跌", "更節省成本的生產過程，所導致的手機供給曲線移動"], answer:1, explanation:"" },
+  { id:29, scope:"期中", category:"Ch2 需求與供給", question:"若政府對價格實施管制，使商品之價格高於市場均衡價格，則此市場會出現什麼狀況？", options:["需求線向右移動", "供給線向右移動", "超額需求", "超額供給"], answer:3, explanation:"" },
+  { id:30, scope:"期中", category:"Ch2 需求與供給", question:"超額需求是指下列何種情況？", options:["需求量大於供給量", "需求曲線為負斜率曲線", "需求量小於供給量", "需求量等於供給量"], answer:0, explanation:"" },
+  { id:31, scope:"期中", category:"Ch2 需求與供給", question:"下列何種情狀會發生超額供給？", options:["供給曲線為正斜率", "市價高於均衡價格", "市價等於均衡價格", "市價低於均衡價格"], answer:1, explanation:"" },
+  { id:32, scope:"期中", category:"Ch2 需求與供給", question:"政府對價格採取上限管制時，很可能會導致：", options:["需求均衡", "黑市及地下經濟的發展", "均衡價格提高", "超額供給"], answer:1, explanation:"" },
+  { id:33, scope:"期中", category:"Ch2 需求與供給", question:"若政府對某市場採取有效的價格下限，將會使得市場：", options:["供需平衡", "不受影響", "供過於求", "供不應求"], answer:2, explanation:"" },
+  { id:34, scope:"期中", category:"Ch2 需求與供給", question:"《勞動基準法》中保障勞工的最低工資是指：", options:["政府制定的均衡價格", "勞動供給線上的工資", "政府設定的價格下限", "政府設定的價格上限"], answer:2, explanation:"" },
+  { id:35, scope:"期中", category:"Ch2 需求與供給", question:"若《勞動基準法》中保障勞工的最低工資對勞動市場有影響，則表示此價格限制：", options:["等於原市場均衡工資", "使得市場均衡工資下降", "低於原市場均衡工資", "高於原市場均衡工資"], answer:3, explanation:"" },
+  { id:36, scope:"期中", category:"Ch2 需求與供給", question:"假設某商品目前的價格為30元，但市場均衡價格為50元，則以下何者正確？", options:["市場供給線會向左移動", "市場需求線會向左移動", "有超額需求", "有超額供給"], answer:2, explanation:"" },
+  { id:37, scope:"期中", category:"Ch2 需求與供給", question:"如果香蕉每公斤市場均衡價格為25 元，當政府將價格限制為30 元時，會造成：", options:["香蕉供給線向右移動", "香蕉需求線向左移動", "香蕉滯銷而有超額供給", "對香蕉有超額需求"], answer:2, explanation:"" },
+  { id:38, scope:"期中", category:"Ch2 需求與供給", question:"假設泡麵是劣等品，以下敘述何者正確？", options:["當泡麵價格下跌時，會減少對泡麵替代品三角飯糰的需求", "當泡麵價格下跌時，不再購買泡麵", "當泡麵價格下跌時，會增加對泡麵互補品茶葉蛋的需求", "當所得增加時，會減少泡麵的需求"], answer:3, explanation:"" },
+  { id:39, scope:"期中", category:"Ch2 需求與供給", question:"下列何者為價格下限？", options:["利率不得超過18%", "課徵奢侈稅", "管制房屋出租的最高價格", "《勞動基準法》中的最低工資率"], answer:3, explanation:"" },
+  { id:40, scope:"期中", category:"Ch2 需求與供給", question:"若政府認為市場均衡價格太高，而採取價格管制措施，商品之最高價格不得高於市場均衡價格，則此市場會產生：", options:["需求曲線向右移動", "供給曲線向右移動", "超額需求", "超額供給。 **"], answer:2, explanation:"" },
+  { id:41, scope:"期中", category:"Ch3 消費者行為", question:"消費第一單位商品所獲得的總效用為 50，再消費第二單位商品所獲得的總效用為 75，則此時的邊際效用為：", options:["固定", "無法判斷", "遞增", "遞減"], answer:3, explanation:"" },
+  { id:42, scope:"期中", category:"Ch3 消費者行為", question:"假設打手遊的邊際效用始終為正，則無論花多少時間打手遊所產生的總效用應該是：", options:["水平", "先遞增，再遞減", "一直遞減", "一直遞增"], answer:3, explanation:"" },
+  { id:43, scope:"期中", category:"Ch3 消費者行為", question:"邊際效用及總效用之關係，下列何選項的敘述最為適當：", options:["開始消費商品時，得到的邊際效用下降，但總效用上升", "開始消費商品時，得到的邊際效用與總效用同時下降", "開始消費商品時，得到的邊際效用上升，但總效用下降", "開始消費商品時，得到的邊際效用與總效用同時增加"], answer:0, explanation:"" },
+  { id:44, scope:"期中", category:"Ch3 消費者行為", question:"有關邊際效用與總效用的敘述，下列何者為真？", options:["當邊際效用大於零，則總效用會增加", "當邊際效用等於零時，總效用也等於零", "當邊際效用最大時，總效用不變", "當總效用最大時，邊際效用不變"], answer:0, explanation:"" },
+  { id:45, scope:"期中", category:"Ch3 消費者行為", question:"有關於效用的敘述，下列何者正確？", options:["因為鑽石的總效用比水大，故鑽石的價格高於水", "消費者效用達最大時，其所花在各商品每一元所提供的邊際效用皆相等", "邊際效用遞減是指隨著消費量增加，總效用減少", "總效用是指增加一單位消費量後，效用增加的部分"], answer:1, explanation:"" },
+  { id:46, scope:"期中", category:"Ch3 消費者行為", question:"當消費者購買商品所願意支付的價格，是取決於消費該商品的：", options:["平均效用", "總成本", "邊際效用", "總效用"], answer:2, explanation:"" },
+  { id:47, scope:"期中", category:"Ch3 消費者行為", question:"假設消費者效用達到最大化，此時 1 根香蕉的價格為 10 元，1 顆蘋果的價格為 25 元。當消費者消費香蕉的邊際效用為 20 時，則蘋果的邊際效用等於多少？", options:["50", "20", "10", "25"], answer:0, explanation:"" },
+  { id:48, scope:"期中", category:"Ch3 消費者行為", question:"1 根香蕉的價格為 10 元，1 顆蘋果的價格為 25 元。當香蕉的邊際效用為 20 時，蘋果的邊際效用為 40，此時在有限的預算下，消費者應如何消費才能使效用達到最大？", options:["多買香蕉，多買蘋果", "少買香蕉，少買蘋果", "多買香蕉，少買蘋果", "多買蘋果，少買香蕉"], answer:2, explanation:"" },
+  { id:49, scope:"期中", category:"Ch3 消費者行為", question:"看電影得到的每一元邊際效用為 5，爆米花每一元的邊際效用為 7。此時消費者為求效用最大應該：", options:["不必改變爆米花的購買數量", "多看一場電影", "少買一些爆米花", "多買一些爆米花"], answer:2, explanation:"" },
+  { id:50, scope:"期中", category:"Ch3 消費者行為", question:"吃 1 片 pizza 總共得到 4 個效用單位，吃 2 片 pizza 總共得到 8 個效用單位，吃 3 片 pizza 總共得到 11 個效用單位。請問吃第 3 片 pizza的邊際效用是多少？", options:["12 個效用單位", "23 個效用單位", "4 個效用單位", "3 個效用單位"], answer:3, explanation:"" },
+  { id:51, scope:"期中", category:"Ch3 消費者行為", question:"關於無異曲線的敘述，下列何者正確？", options:["任兩條無異曲線可以相交", "愈靠近原點的無異曲線，代表的效用程度愈高", "無異曲線皆是正斜率", "同一條無異曲線上所有的消費組合點，代表滿足程度都是相同"], answer:3, explanation:"" },
+  { id:52, scope:"期中", category:"Ch3 消費者行為", question:"下列關於無異曲線的敘述，何者不正確？", options:["無異曲線上所有的消費組合點，代表滿足程度都是相同", "愈遠離原點的無異曲線，代表的效用程度愈低", "通常凸向原點", "任兩條無異曲線不相交"], answer:1, explanation:"" },
+  { id:53, scope:"期中", category:"Ch3 消費者行為", question:"下列何者是無異曲線凸向原點的原因：", options:["機會成本遞減", "邊際成本遞增", "邊際替代率遞減", "邊際效用遞減"], answer:2, explanation:"" },
+  { id:54, scope:"期中", category:"Ch3 消費者行為", question:"下列何者不是消費者均衡？", options:["消費者將所得用光", "花費在每種商品上最後一元所得到的邊際效用皆相同", "所有商品的總效用皆相等", "無異曲線與預算線相切"], answer:2, explanation:"" },
+  { id:55, scope:"期中", category:"Ch3 消費者行為", question:"水比鑽石的價格低，這是因為：", options:["水的總效用低", "水的邊際效用比較低", "鑽石的總效用比較低", "鑽石比較漂亮"], answer:1, explanation:"" },
+  { id:56, scope:"期中", category:"Ch3 消費者行為", question:"如果使用經濟學的「效用」觀點來說明「人在福中不知福」，則下列哪個選項最為適當？", options:["因為獲得的福氣不夠，所以福氣的邊際效用遞增", "因為獲得的福氣不夠，所以福氣的總效用遞增", "因為獲得的福氣太多，而這些福氣的邊際效用趨近於零", "因為獲得的福氣太多，故福氣之總效用為零"], answer:2, explanation:"" },
+  { id:57, scope:"期中", category:"Ch3 消費者行為", question:"當消費皮包的每一元邊際效用為10 單位，而球鞋的價格為1,500 元，且邊際效用為 20,000 單位時，消費者應該：", options:["增加購買球鞋", "不改變皮包和球鞋的消費數量", "減少購買球鞋", "增加購買皮包"], answer:0, explanation:"" },
+  { id:58, scope:"期中", category:"Ch3 消費者行為", question:"如果 pizza 與熱狗的邊際效用相同，則下列何者會使消費者的效用達最大？", options:["消費相同數量的 pizza 和熱狗", "pizza 和熱狗是互補品", "pizza 價格和熱狗價格相同", "pizza 總效用與熱狗總效用相同"], answer:2, explanation:"" },
+  { id:59, scope:"期中", category:"Ch3 消費者行為", question:"假設水的價格為一瓶 20 元，鑽石的價格為一克拉 200,000 元，水的邊際效用為一瓶 100 效用單位，使用鑽石的邊際效用為一克拉 100 萬效用單位。為使總效用達到最大，此消費者應當？", options:["增加兩者的消費", "不改變兩者的消費", "減少鑽石的消費，增加水的消費", "減少水的消費，增加鑽石的消費"], answer:1, explanation:"" },
+  { id:60, scope:"期中", category:"Ch3 消費者行為", question:"若 X 與 Y 的邊際效用比為 3，而 X 與 Y 的價格比為 6，則消費者應如何消費 X 與 Y 才能增加效用？", options:["多買 X，多買 Y", "少買 X，少買 Y", "多買 X，少買 Y", "多買 Y，少買 X。 **"], answer:3, explanation:"" },
+  { id:61, scope:"期中", category:"Ch4 彈性分析", question:"「薄利多銷」的經營策略適用於下列何者？", options:["需求彈性大於1", "需求彈性小於1", "供給彈性小於1", "供給彈性大於1"], answer:0, explanation:"" },
+  { id:62, scope:"期中", category:"Ch4 彈性分析", question:"下列何者的需求彈性較大？", options:["麵包", "觀光", "藥品", "米飯"], answer:1, explanation:"" },
+  { id:63, scope:"期中", category:"Ch4 彈性分析", question:"採用「以價制量」的方式來減少用電量，效果往往相當有限，這是因為民生用電的：", options:["需求彈性小", "需求彈性大", "供給彈性大", "供給彈性小"], answer:0, explanation:"" },
+  { id:64, scope:"期中", category:"Ch4 彈性分析", question:"假設計程車的費率調漲後，會使計程車司機收入減少，表示：", options:["消費者對於計程車的需求彈性等於零", "消費者對於計程車的需求彈性小於一", "消費者對於計程車的需求彈性大於一", "消費者對於計程車的需求彈性等於一"], answer:1, explanation:"" },
+  { id:65, scope:"期中", category:"Ch4 彈性分析", question:"以下影響需求的價格彈性因素，何者是錯的？", options:["消費支出占所得比例愈高，彈性愈大", "時間愈長，彈性愈大", "消費者所得愈高，彈性愈大", "替代品愈多，彈性愈大"], answer:2, explanation:"" },
+  { id:66, scope:"期中", category:"Ch4 彈性分析", question:"當商品價格下跌，消費者也增加對該商品的消費支出，這是因為：", options:["該商品之所得彈性為正", "該商品之所得彈性為負", "該商品的價格彈性大", "該商品的價格彈性小"], answer:2, explanation:"" },
+  { id:67, scope:"期中", category:"Ch4 彈性分析", question:"當咖啡因氣侯不佳收成減少而提高價格時，下列何者正確？", options:["生產者總收入的增減與咖啡的需求彈性無關", "生產者總收入的增減視咖啡供給彈性的大小", "若咖啡的需求彈性小於1，生產者的總收入會增加", "若咖啡的需求彈性大於1，生產者的總收入會增加"], answer:2, explanation:"" },
+  { id:68, scope:"期中", category:"Ch4 彈性分析", question:"假設民眾對捷運的需求彈性為0.5，則當捷運的票價調漲時，捷運局的營收會：", options:["不變", "不一定", "減少", "增加"], answer:3, explanation:"" },
+  { id:69, scope:"期中", category:"Ch4 彈性分析", question:"當汽油價格上漲，民眾加油的支出亦隨之增加。這表示汽油的價格彈性：", options:["小於一", "資料不足無法判斷", "等於一", "大於一"], answer:0, explanation:"" },
+  { id:70, scope:"期中", category:"Ch4 彈性分析", question:"當香蕉價格下降百分之十，香蕉需求量會增加百分之五，表示香蕉的需求彈性：", options:["小於一", "為零", "大於一", "無窮大"], answer:0, explanation:"" },
+  { id:71, scope:"期中", category:"Ch4 彈性分析", question:"商品的替代品愈多表示：", options:["需求曲線愈陡", "需求曲線愈平坦", "需求價格彈性愈小", "供給價格彈性愈大"], answer:1, explanation:"" },
+  { id:72, scope:"期中", category:"Ch4 彈性分析", question:"禁止外國牛肉進口，會使市場上的國產牛肉：", options:["需求彈性變大", "需求彈性變小", "供給彈性變小", "供給彈性變大"], answer:1, explanation:"" },
+  { id:73, scope:"期中", category:"Ch4 彈性分析", question:"如果廠商希望用薄利多銷的方式來提高利潤，則該廠商的產品須有何種特性？", options:["要素的供給彈性小", "生產者處於完全競爭市場", "需求彈性小", "需求彈性大"], answer:3, explanation:"" },
+  { id:74, scope:"期中", category:"Ch4 彈性分析", question:"當需求曲線為一條垂直線，請問需求價格彈性為：", options:["等於零", "線上每一點的彈性都不一樣", "小於一", "大於一"], answer:0, explanation:"" },
+  { id:75, scope:"期中", category:"Ch4 彈性分析", question:"假設肯德基（KFC）面對的是一富有彈性的需求曲線。若肯德基想要增加利潤，則應：", options:["降低商品售價", "減少廣告支出", "維持商品售價不變", "提高商品售價"], answer:0, explanation:"" },
+  { id:76, scope:"期中", category:"Ch4 彈性分析", question:"百貨公司週年慶化妝品打六折促銷，銷售量增加五成。這表示消費者對化妝品的需求價格彈性約為：", options:["0.25", "1", "1.2", "1.25"], answer:3, explanation:"" },
+  { id:77, scope:"期中", category:"Ch4 彈性分析", question:"甲商品對乙商品的交叉彈性等於3，則下列敘述何者正確？", options:["多買3 個甲商品就會少買1個乙商品", "甲商品與乙商品互為互補品", "多買1 個甲商品就會少買3個乙商品", "乙商品的消費量是甲商品的3倍"], answer:1, explanation:"" },
+  { id:78, scope:"期中", category:"Ch4 彈性分析", question:"已知需求的價格彈性為0.85，則表示當價格上漲1%時，需求量會如何改變？", options:["減少1%", "減少0.85%", "減少85%", "增加0.85%"], answer:1, explanation:"" },
+  { id:79, scope:"期中", category:"Ch4 彈性分析", question:"「穀賤傷農」是因為：", options:["農產品的需求彈性小", "農產品的需求彈性大", "農產品的供給彈性大", "農產品的供給彈性小"], answer:3, explanation:"" },
+  { id:80, scope:"期中", category:"Ch4 彈性分析", question:"商品的需求價格彈性之絕對值介於0與1 之間，則該商品為：", options:["劣等財", "必需品", "奢侈品", "以上皆非。 **"], answer:1, explanation:"" },
+  { id:81, scope:"期中", category:"Ch5 生產理論", question:"經濟學中所提到的短期與長期指的是：", options:["所有生產要素均屬於變動生產要素時稱為長期", "所有生產要素均屬於變動生產要素時稱為短期", "至少有一種生產要素的數量為固定不變的期間稱為長期", "無法調整固定生產要素的期間稱為長期"], answer:0, explanation:"" },
+  { id:82, scope:"期中", category:"Ch5 生產理論", question:"四大生產要素中，不包括下列何選項？", options:["資本", "貨幣供給", "勞動", "土地"], answer:1, explanation:"" },
+  { id:83, scope:"期中", category:"Ch5 生產理論", question:"下列有關成本與利潤的關係，何者錯誤？", options:["經濟利潤=總收入－外顯成本－隱含成本", "外顯成本=隱含成本－正常利潤", "經濟利潤=總收入－經濟成本", "會計利潤=總收入－外顯成本"], answer:1, explanation:"" },
+  { id:84, scope:"期中", category:"Ch5 生產理論", question:"有關長期成本和短期成本之的敘述，下列何者正確？", options:["在長期平均成本上升時，長期邊際成本大於長期平均成本", "短期平均成本是長期平均成本之包絡線", "長期平均成本通過長期邊際成本的最低點", "長期邊際成本為短期邊際成本之包絡線"], answer:0, explanation:"" },
+  { id:85, scope:"期中", category:"Ch5 生產理論", question:"長期平均成本是短期平均成本的包絡線，原因為：", options:["長期平均成本線是相同產量下，選擇產量最大時所對應的平均成本", "長期平均成本線是不同產量下，選擇一個固定的規模生產", "長期平均成本線是在最大產量可能下，選擇成本最低規模生產", "長期平均成本線是在每個產量下，選擇成本最低的規模生產"], answer:3, explanation:"" },
+  { id:86, scope:"期中", category:"Ch5 生產理論", question:"電信公司的長期平均成本隨著產量增加一直在減少，這表示：", options:["成本遞減", "成本遞增", "邊際報酬遞增", "規模報酬遞增"], answer:3, explanation:"" },
+  { id:87, scope:"期中", category:"Ch5 生產理論", question:"長期平均成本線如果處於下降階段，表示：", options:["規模報酬遞增", "規模報酬遞減", "邊際成本遞減", "邊際成本遞增"], answer:0, explanation:"" },
+  { id:88, scope:"期中", category:"Ch5 生產理論", question:"長期平均成本線如果處於上升階段，表示：", options:["規模不經濟", "規模經濟", "規模報酬不變", "規模報酬遞增"], answer:0, explanation:"" },
+  { id:89, scope:"期中", category:"Ch5 生產理論", question:"規模報酬遞減是指什麼？", options:["生產要素增加1%時，產量增加超過1%", "生產要素增加1%時，產量增加小於1%", "增加生產要素，平均產量會減少", "增加生產要素，邊際產量會減少"], answer:1, explanation:"" },
+  { id:90, scope:"期中", category:"Ch5 生產理論", question:"當長期平均成本線呈現固定規模報酬時，下列選項何者正確？", options:["長期平均成本曲線呈現U 字型", "長期平均成本線呈水平", "具有內部規模經濟", "廠商的生產方式達到規模經濟"], answer:1, explanation:"" },
+  { id:91, scope:"期中", category:"Ch5 生產理論", question:"規模經濟可以下列哪一現象表示？", options:["短期平均成本線為正斜率", "短期邊際成本極小時", "長期平均成本線為負斜率", "短期平均成本線為負斜率"], answer:2, explanation:"" },
+  { id:92, scope:"期中", category:"Ch5 生產理論", question:"隨著產品產量擴張，而使產品價格下降，因此這產業可以算是：", options:["規模報酬遞增產業", "規模報酬不變產業", "成本遞減的產業", "規模不經濟的產業"], answer:2, explanation:"" },
+  { id:93, scope:"期中", category:"Ch5 生產理論", question:"在規模經濟階段，下列選項何者正確？", options:["邊際成本大於平均成本", "總成本會隨產量增加而減少", "邊際成本曲線為正斜率", "長期平均成本曲線為負斜率"], answer:3, explanation:"" },
+  { id:94, scope:"期中", category:"Ch5 生產理論", question:"當廠商出現規模經濟時，表示：", options:["長期邊際成本隨著產量增加而增加", "長期邊際成本隨著產量增加而遞減", "長期平均成本隨著產量增加而遞減", "長期平均成本隨著產量增加而增加"], answer:2, explanation:"" },
+  { id:95, scope:"期中", category:"Ch5 生產理論", question:"當廠商處固定規模報酬時，長期平均成本會如何：", options:["長期平均成本曲線上升", "具有內部規模經濟", "具有外部規模經濟", "長期平均成本線為一水平線"], answer:3, explanation:"" },
+  { id:96, scope:"期中", category:"Ch5 生產理論", question:"在既定的產量水準下，長期平均成本比長期邊際成本大的原因為何？", options:["長期平均成本在上漲", "長期平均成本在下降", "短期平均成本處於最小處", "短期平均成本等於長期邊際成本"], answer:1, explanation:"" },
+  { id:97, scope:"期中", category:"Ch5 生產理論", question:"已知一廠商的產量為7 個單位時，總成本為70 元，當產量增加到8 個單位時，平均成本為11元，那麼此時的邊際成本為何？", options:["4 元", "18 元", "88 元", "120 元"], answer:3, explanation:"" },
+  { id:98, scope:"期中", category:"Ch5 生產理論", question:"假設3個勞工每一天可以生產300公斤小麥，5個勞工每一天可以生 產450 公斤小麥，則下列敘述何者為真？", options:["平均變動成本是下降的", "平均產量是下降的", "邊際產量等於平均產量", "勞動的邊際產量是200 公斤"], answer:1, explanation:"" },
+  { id:99, scope:"期中", category:"Ch5 生產理論", question:"下列有關長期平均成本曲線的敘述，何者為真？", options:["為短期邊際成本皆為最低點的連線組合", "長期平均成本曲線表示生產皆為規模經濟", "為U字型，亦稱為包絡曲線", "長期平均成本曲線為先升後降的曲線"], answer:2, explanation:"" },
+  { id:100, scope:"期中", category:"Ch5 生產理論", question:"邊際成本曲線與下列各曲線的關係為何？", options:["邊際成本曲線由下而上穿過AC、AVC 之最高點", "邊際成本曲線由上而下穿過AC、AVC 之最高點", "邊際成本曲線由下而上穿過AC、AVC 之最低點", "邊際成本曲線由上而下穿過AC、AVC 之最低點。 **"], answer:2, explanation:"" },
+  { id:101, scope:"期中", category:"Ch6 成本分析", question:"經濟學所關注的市場結構，通常區分為以下哪四種？", options:["完全競爭、寡占、獨占、雙占", "完全競爭、獨占性競爭、獨占、不完全競爭", "完全競爭、獨占性競爭、寡占、獨占", "完全競爭、不完全競爭、寡占、獨占"], answer:2, explanation:"" },
+  { id:102, scope:"期中", category:"Ch6 成本分析", question:"下列哪一項不是完全競爭市場的特徵？", options:["賣方很多", "廣告", "資訊完全", "賣方可以自由進入市場"], answer:1, explanation:"" },
+  { id:103, scope:"期中", category:"Ch6 成本分析", question:"下列市場結構分類的例子中，何者是不恰當的？", options:["農產品市場是完全競爭", "餐館是獨占性競爭", "零售業是寡占", "自來水公司是獨占"], answer:2, explanation:"" },
+  { id:104, scope:"期中", category:"Ch6 成本分析", question:"完全競爭廠商所面對的需求曲線為何？", options:["垂直的需求曲線", "水平的需求曲線", "負斜率的需求曲線", "正斜率的需求曲線"], answer:1, explanation:"" },
+  { id:105, scope:"期中", category:"Ch6 成本分析", question:"完全競爭廠商的短期均衡為何？", options:["*P* = *SAC*", "P = *SAVC*", "*P* = *Q*", "P = *SMC*"], answer:3, explanation:"" },
+  { id:106, scope:"期中", category:"Ch6 成本分析", question:"完全競爭廠商短期均衡時，下列敘述何者錯誤？", options:["邊際收益等於平均收益", "可能虧損", "市場價格小於平均成本，則停業", "若未停業，則生產「邊際收益等於邊際成本」的產量"], answer:2, explanation:"" },
+  { id:107, scope:"期中", category:"Ch6 成本分析", question:"當完全競爭廠商短期利潤極大，恰好損益平衡，此時下列何者最小？", options:["邊際成本", "平均變動成本", "平均成本", "平均固定成本"], answer:2, explanation:"" },
+  { id:108, scope:"期中", category:"Ch6 成本分析", question:"下列何種情況為完全競爭廠商短期的歇業點？", options:["價格等於平均變動成本的最低點時", "價格等於平均成本的最低點時", "價格等於邊際成本的最低點時", "邊際成本等於平均成本時"], answer:0, explanation:"" },
+  { id:109, scope:"期中", category:"Ch6 成本分析", question:"下列關於完全競爭廠商短期歇業價格的敘述，何者正確？", options:["當市場價格高於歇業價格時，廠商之利潤必為正", "廠商之短期歇業價格等於最小平均成本", "短期歇業價格位於邊際成本線與平均變動成本線的交點", "高於短期歇業價格的平均變動成本線為廠商的短期供給線"], answer:2, explanation:"" },
+  { id:110, scope:"期中", category:"Ch6 成本分析", question:"完全競爭廠商的短期供給曲線為何？", options:["整條邊際成本線", "邊際成本線高於平均成本線之部分", "邊際成本線高於平均變動成本線之部分", "邊際成本線與邊際收益線之交點"], answer:2, explanation:"" },
+  { id:111, scope:"期中", category:"Ch6 成本分析", question:"完全競爭廠商的敘述，下列哪一項是不正確的？", options:["只要虧損小於固定成本，廠商在短期內仍應繼續生產", "若虧損大於固定成本，則廠商應停業", "廠商的短期供給曲線，是在平均成本曲線之上的邊際成本曲線", "當價格低於平均變動成本時，產量為零"], answer:2, explanation:"" },
+  { id:112, scope:"期中", category:"Ch6 成本分析", question:"若完全競爭產業中的廠商經濟利潤為正，則在長期時：", options:["會有廠商加入該產業，市場供給線會右移", "會有廠商加入該產業，市場供給線會左移", "會有廠商退出該產業，市場供給線會左移", "會有廠商退出該產業，市場供給線會右移"], answer:0, explanation:"" },
+  { id:113, scope:"期中", category:"Ch6 成本分析", question:"因為有潛在廠商可以自由進出市場，故完全競爭廠商的長期經濟利潤必等於：", options:["零", "機會成本", "正常利潤", "會計利潤"], answer:0, explanation:"" },
+  { id:114, scope:"期中", category:"Ch6 成本分析", question:"完全競爭市場可以達到經濟效率，此時下列何者達到最大？", options:["消費者剩餘", "生產者剩餘", "消費者剩餘與生產者剩餘之加總", "無謂損失"], answer:2, explanation:"" },
+  { id:115, scope:"期中", category:"Ch6 成本分析", question:"在下列何種情況下，一個商品市場的總剩餘達到最大？", options:["邊際社會利益等於零", "邊際社會成本等於零", "平均社會利益等於平均社會成本", "邊際社會利益等於邊際社會成本"], answer:3, explanation:"" },
+  { id:116, scope:"期中", category:"Ch6 成本分析", question:"下列何種情況必定會導致完全競爭廠商短期停產？", options:["總收益小於固定成本", "平均收益小於平均固定成本", "平均收益小於平均成本", "總收益小於總變動成本"], answer:3, explanation:"" },
+  { id:117, scope:"期中", category:"Ch6 成本分析", question:"在完全競爭市場中，當市場需求增加時，如果要素價格維持不變，則個別廠商的均衡產量與廠商數目會有何變化？", options:["廠商數目增加，且個別廠商的產量也增加", "廠商數目增加，但個別廠商的產量不變", "廠商數目不變，但個別廠商的產量增加", "廠商數目不變，且個別廠商的產量也不變。 若需求線與供給線分別為：Q^D^ = 100－P與Q^S^ = －20 + P，試問："], answer:1, explanation:"" },
+  { id:118, scope:"期中", category:"Ch6 成本分析", question:"消費者剩餘等於：", options:["400", "600", "800", "1,000"], answer:2, explanation:"" },
+  { id:119, scope:"期中", category:"Ch6 成本分析", question:"生產者剩餘等於：", options:["900", "800", "700", "600"], answer:1, explanation:"" },
+  { id:120, scope:"期中", category:"Ch6 成本分析", question:"社會福利水準等於：", options:["1,800", "1,600", "1,500", "1,200。 **"], answer:1, explanation:"" },
+  { id:121, scope:"期中", category:"Ch7 市場結構", question:"下列有關獨占成因的敘述，何者錯誤？", options:["投資的沉沒成本很小", "生產具有規模經濟", "擁有重要的生產要素", "法律限制"], answer:0, explanation:"" },
+  { id:122, scope:"期中", category:"Ch7 市場結構", question:"追求利潤最大的獨占廠商，其價格P、邊際收益MR與邊際成本MC 之關係為何？", options:["P = MR = MC", "P = MR> MC", "P > MR = MC", "P = MC > MR"], answer:2, explanation:"" },
+  { id:123, scope:"期中", category:"Ch7 市場結構", question:"面對線性需求線的獨占廠商，當其邊際成本大於0時，則最適產量會 落在需求線上的哪一段？", options:["需求的價格彈性大於1 之處", "需求的價格彈性小於1 之處", "需求的價格彈性等於1 之處", "與需求的價格彈性無關"], answer:0, explanation:"" },
+  { id:124, scope:"期中", category:"Ch7 市場結構", question:"獨占廠商的短期均衡利潤為何？", options:["大於0", "等於0", "小於0", "可能大於、等於或小於0"], answer:3, explanation:"" },
+  { id:125, scope:"期中", category:"Ch7 市場結構", question:"有關獨占廠商的長期均衡，下列敘述何者錯誤？", options:["位於平均成本的最低點", "可以保有超額利潤", "訂價會高於邊際成本", "會有生產上的無效率"], answer:0, explanation:"" },
+  { id:126, scope:"期中", category:"Ch7 市場結構", question:"獨占廠商和完全競爭廠商的比較，下列敘述何者正確？", options:["兩種廠商都對價格有影響力", "獨占廠商和完全競爭廠商都面對負斜率的需求線", "兩者追求利潤極大時，生產邊際收益皆等於邊際成本的產量", "獨占廠商追求利潤極大，完全競爭廠商則否"], answer:2, explanation:"" },
+  { id:127, scope:"期中", category:"Ch7 市場結構", question:"獨占性競爭廠商的獨占力大小為何？", options:["和完全競爭廠商一樣", "介於完全競爭廠商和獨占廠商之間", "和獨占廠商一樣", "和寡占廠商一樣"], answer:1, explanation:"" },
+  { id:128, scope:"期中", category:"Ch7 市場結構", question:"下列哪一項不是獨占性競爭市場的主要特徵？", options:["產品差異性", "廠商自由進出", "廠商為價格接受者", "小廠商為數眾多"], answer:2, explanation:"" },
+  { id:129, scope:"期中", category:"Ch7 市場結構", question:"下列何者是完全競爭廠商與獨占性競爭廠商相同的短期均衡條件？", options:["價格等於平均成本", "邊際收益等於平均成本", "價格等於邊際成本", "邊際收益等於邊際成本"], answer:3, explanation:"" },
+  { id:130, scope:"期中", category:"Ch7 市場結構", question:"獨占性競爭的產業在長期時，其超額利潤將：", options:["高於平均變動成本", "可能增加", "變為零", "低於平均變動成本"], answer:2, explanation:"" },
+  { id:131, scope:"期中", category:"Ch7 市場結構", question:"一個壟斷性競爭的廠商處於長期均衡時會有何現象？", options:["價格必定等於平均成本及邊際成本", "價格必定等於平均成本而高於邊際成本", "平均收益等於邊際收益，並等於需求（廠商面對的需求線）", "平均成本等於邊際收益"], answer:1, explanation:"" },
+  { id:132, scope:"期中", category:"Ch7 市場結構", question:"下列何者不是寡占市場的特性？", options:["廠商之間利益相互影響程度很大", "廠商可能會相互勾結", "廠商不是價格接受者", "廠商進入市場障礙小"], answer:3, explanation:"" },
+  { id:133, scope:"期中", category:"Ch7 市場結構", question:"寡占市場的主要特徵是：", options:["在長期存在經濟利潤", "在任何情況下，廠商生產標準化產品", "廠商相互依存度頗高", "幾乎完全沒有廣告"], answer:2, explanation:"" },
+  { id:134, scope:"期中", category:"Ch7 市場結構", question:"囚犯困境賽局中，囚犯張三與李四的償付矩陣如下表： 囚犯困境償付矩陣 上表中的（6月、20年）表示當張三招認與李四否認時，張三得到的 刑期為6 月，而李四得到的刑期為20 年，其餘狀況類推，則下列何 者為該賽局的Nash均衡？", options:["張三與李四同時招供", "張三招供與李四否認", "張三否認與李四招供", "張三與李四同時否認"], answer:0, explanation:"" },
+  { id:135, scope:"期中", category:"Ch7 市場結構", question:"下表為福特、裕隆兩汽車公司相互競爭所形成的簡單賽局： 福特汽車公司和裕隆汽車公司的償付矩陣 表中，兩廠商的策略為廣告或不廣告。括號內前項為福特公司的報 酬，後項為裕隆公司的報酬。則此賽局之Nash 均衡為何？", options:["皆廣告", "皆不廣告", "福特廣告，裕隆不廣告", "福特不廣告，裕隆廣告"], answer:0, explanation:"" },
+  { id:136, scope:"期中", category:"Ch7 市場結構", question:"已知獨占廠商面對直線型且斜率為負的需求線，則當需求彈性等於1時，邊際收益為何？", options:["小於0", "等於0", "等於1", "大於1"], answer:1, explanation:"" },
+  { id:137, scope:"期中", category:"Ch7 市場結構", question:"下列哪一項不屬於獨占性競爭者賴以降低競爭的方式？", options:["政府管制", "取得執照始得進入產業", "透過廣告以強化產品差異性", "企圖使需求曲線更有彈性"], answer:3, explanation:"" },
+  { id:138, scope:"期中", category:"Ch7 市場結構", question:"壟斷性競爭產業處於長期均衡時，倘若一夜之間要素成本上揚15%， 則下列選項何者正確？", options:["需求線及邊際收益線均將向右移動", "某些廠商將退出該產業", "新廠商將進入該產業", "需求線及邊際收益線將向左移動"], answer:1, explanation:"" },
+  { id:139, scope:"期中", category:"Ch7 市場結構", question:"寡占廠商如果經過合併收購成為獨占廠商，則均衡時的產量會有何種 變化？", options:["增加", "減少", "不變", "難以確定"], answer:1, explanation:"" },
+  { id:140, scope:"期中", category:"Ch7 市場結構", question:"下列何者為卡特爾組織勾結失敗的原因？", options:["產業有最大利潤，個別合作廠商沒有最大利潤", "產業有最大產出，個別合作廠商沒有最大產出", "產業有最大價格，個別合作廠商沒有最大價格", "產業有最大總收入，個別合作廠商沒有最大總收入。 **"], answer:0, explanation:"" },
+  { id:141, scope:"期末", category:"Ch9 國民所得", question:"下列何者應計入本國GDP？", options:["臺商於大陸投資之所得", "外勞於臺灣打工之所得", "王建民在大聯盟的薪酬", "美商於大陸投資之所得"], answer:1, explanation:"" },
+  { id:142, scope:"期末", category:"Ch9 國民所得", question:"下列何者應計入GDP？", options:["中古車或二手車之買賣收入", "中古車或二手車之買賣佣金", "中油公司測出苗栗外海有豐富天然氣蘊藏，初估市價達100 億元", "政府發放總額820 億的消費券"], answer:1, explanation:"" },
+  { id:143, scope:"期末", category:"Ch9 國民所得", question:"下列何者應計入GDP？", options:["今年股票買賣成交值共6 兆元", "今年股票買賣手續費收入180 億元", "李先生支付50 元向私酒釀造者買了一瓶酒", "餐廳服務生之小費100 元"], answer:1, explanation:"" },
+  { id:144, scope:"期末", category:"Ch9 國民所得", question:"美中貿易對抗促使大陸臺商返臺投資，則本國GDP會？", options:["增加", "減少", "不受影響", "視情況而定"], answer:0, explanation:"" },
+  { id:145, scope:"期末", category:"Ch9 國民所得", question:"下列何者不包含在GDP的計算項目中？", options:["東元電機公司今年生產但沒有賣掉的電視", "住自有房屋而節省的租金", "購買粉刷房屋的油漆", "家庭主婦到迪化街買布自己做衣服"], answer:3, explanation:"" },
+  { id:146, scope:"期末", category:"Ch9 國民所得", question:"關於GDP的定義，下列何者正確？", options:["為流量概念", "是指在某時點下的總產量", "包括所有中間投入的價值加總", "只計算財貨的市場價值，不計算勞務的貢獻"], answer:0, explanation:"" },
+  { id:147, scope:"期末", category:"Ch9 國民所得", question:"在不影響本國勞動就業量的前提下，國內引進菲律賓勞工，將造成何種影響？", options:["GDP與GNP同時增加", "GDP增加，GNP不變", "GDP不變，GNP增加", "GDP與GNP同時減少"], answer:1, explanation:"" },
+  { id:148, scope:"期末", category:"Ch9 國民所得", question:"假設某農場從國外進口10,000元的仔豬，養大後以100,000元賣給農產運銷公司。接著農產運銷公司再把這批豬加工製成香腸，以160,000 元賣給百貨公司。最後，百貨公司再將這批香腸分裝販售，得款300,000 元。請問這個生產流程對GDP的貢獻為何？", options:["560,000元", "550,000元", "300,000 元", "290,000元"], answer:3, explanation:"" },
+  { id:149, scope:"期末", category:"Ch9 國民所得", question:"下面哪一生產活動應計入2018 年的臺灣國內生產毛額？", options:["2018 年在臺工作的菲傭薪資", "2018 年華通電腦公司派駐大陸工廠上班之臺籍工程師的薪資", "2018 年台積電股票總市值", "2018 年臺灣進口德國賓士汽車之市值"], answer:0, explanation:"" },
+  { id:150, scope:"期末", category:"Ch9 國民所得", question:"國內生產毛額與國民生產毛額的差額包括下列何者？", options:["存貨與折舊", "公司未分配盈餘", "要素在國外所得淨額", "折舊與間接稅淨額"], answer:2, explanation:"" },
+  { id:151, scope:"期末", category:"Ch9 國民所得", question:"以下關於名目GNP與實質GNP的說明，何者正確？", options:["前者以基期物價計算，後者以當期物價計算", "前者以當期物價計算，後者以基期物價計算", "前者以本國貨幣計算，後者以美元計算", "前者以美元計算，後者以本國貨幣計算"], answer:1, explanation:"" },
+  { id:152, scope:"期末", category:"Ch9 國民所得", question:"假設2018 年之名目GDP低於實質GDP，則下列選項何者正確？", options:["2018 年的物價水準低於基期的物價水準", "2018 年的物價水準高於基期的物價水準", "2018 年的實質GDP低於基期的實質GDP", "2018 年的實質GDP高於基期的實質GDP"], answer:0, explanation:"" },
+  { id:153, scope:"期末", category:"Ch9 國民所得", question:"觀察一國之洛侖士曲線，發現其非常接近對角線，則下列何者正確？", options:["中央銀行獨立性愈強", "國際資本移動愈快速", "家戶所得分配愈平均", "景氣循環週期愈短"], answer:2, explanation:"" },
+  { id:154, scope:"期末", category:"Ch9 國民所得", question:"基尼係數等於0 時，所代表的經濟意義為何？", options:["所得分配為絕對均等", "所得分配為絕對不均等", "摩擦性失業率等於0", "結構性失業率等於0"], answer:0, explanation:"" },
+  { id:155, scope:"期末", category:"Ch9 國民所得", question:"綠色國民所得帳與國民所得帳最大的區別，是考慮了下列何種因素？", options:["休閒價值", "地下經濟", "汙染與公害", "婦女在家的勞務貢獻。"], answer:2, explanation:"" },
+  { id:156, scope:"期末", category:"Ch9 國民所得", question:"報載外商陸續從臺灣撤資，對臺灣GDP之影響為？", options:["增加", "減少", "不受影響", "視情況而定"], answer:1, explanation:"" },
+  { id:157, scope:"期末", category:"Ch9 國民所得", question:"外籍勞工大量湧入國內打工，對臺灣GDP之影響為？", options:["增加", "減少", "不受影響", "視情況而定"], answer:0, explanation:"" },
+  { id:158, scope:"期末", category:"Ch9 國民所得", question:"大陸複製臺灣產業群聚現象，對臺灣GDP之影響為？", options:["增加", "減少", "不受影響", "視情況而定"], answer:1, explanation:"" },
+  { id:159, scope:"期末", category:"Ch9 國民所得", question:"大陸臺商原物料採購當地化傾向，對臺灣GDP之影響為？", options:["增加", "減少", "不受影響", "視情況而定"], answer:1, explanation:"" },
+  { id:160, scope:"期末", category:"Ch9 國民所得", question:"大陸紅色供應鏈崛起，對臺灣GDP之影響為？", options:["增加", "減少", "不受影響", "視情況而定。 **"], answer:1, explanation:"" },
+  { id:161, scope:"期末", category:"Ch10 簡單凱因斯", question:"設消費函數為C = 100 + 0.75Y~d~，T = 0.2Y；若Y = 1,000，其平均消費傾向為多少？", options:["0.25", "0.7", "0.85", "0.875"], answer:3, explanation:"" },
+  { id:162, scope:"期末", category:"Ch10 簡單凱因斯", question:"若消費方程式為C = 2,500 + 0.75Y，則「收支平衡點」之所得為何？", options:["10,000", "7,500", "5,000", "2,500"], answer:0, explanation:"" },
+  { id:163, scope:"期末", category:"Ch10 簡單凱因斯", question:"下列哪一項並非所得挹注項目？", options:["消費", "投資", "政府支出", "進口"], answer:3, explanation:"" },
+  { id:164, scope:"期末", category:"Ch10 簡單凱因斯", question:"若實際所得低於均衡水準，則下列選項何者正確？", options:["總支出大於總產出", "總支出小於總產出", "生產者將減產", "以上皆對"], answer:0, explanation:"" },
+  { id:165, scope:"期末", category:"Ch10 簡單凱因斯", question:"如果總支出大於總產出，則下列選項何者正確？", options:["存貨增加，國民生產毛額增加", "存貨增加，國民生產毛額減少", "存貨減少，國民生產毛額增加", "存貨減少，國民生產毛額減少"], answer:2, explanation:"" },
+  { id:166, scope:"期末", category:"Ch10 簡單凱因斯", question:"某一經濟體系資料如下：C= 200 + 0.8Y~d~，T = 100，I = 100，G=80，試問消費乘數為何？", options:["4", "5", "-4", "-5"], answer:1, explanation:"" },
+  { id:167, scope:"期末", category:"Ch10 簡單凱因斯", question:"承第6 題，試問租稅乘數為何？", options:["4", "5", "-4", "-5"], answer:2, explanation:"" },
+  { id:168, scope:"期末", category:"Ch10 簡單凱因斯", question:"承第6 題，試問投資乘數為何？", options:["4", "5", "-4", "-5"], answer:1, explanation:"" },
+  { id:169, scope:"期末", category:"Ch10 簡單凱因斯", question:"承第6 題，試問政府支出乘數為何？", options:["4", "5", "-4", "-5"], answer:1, explanation:"" },
+  { id:170, scope:"期末", category:"Ch10 簡單凱因斯", question:"若不考慮政府與國際貿易，則當總產出為400，計畫消費為400，計畫投資為100 時，下列選項何者正確？", options:["均衡所得為400", "計畫投資大於計畫儲蓄", "非計畫存貨增加", "均衡所得小於400"], answer:1, explanation:"" },
+  { id:171, scope:"期末", category:"Ch10 簡單凱因斯", question:"某一經濟體系資料如下：C= 100 + 0.8Y~d~，T = 100，I=80，G= 100，若充分就業所得Y~f~ = 1,200，試問經濟體系正處於______缺口？缺 口為_____？", options:["膨脹；40", "膨脹；50", "緊縮；40", "緊縮；50"], answer:2, explanation:"" },
+  { id:172, scope:"期末", category:"Ch10 簡單凱因斯", question:"承第11題，政府若欲消除此一缺口，則政府支出應該：", options:["增加40", "增加50", "減少40", "減少50"], answer:0, explanation:"" },
+  { id:173, scope:"期末", category:"Ch10 簡單凱因斯", question:"承第11題，政府若欲消除此一缺口，則定額稅應該：", options:["增加40", "增加50", "減少40", "減少50"], answer:3, explanation:"" },
+  { id:174, scope:"期末", category:"Ch10 簡單凱因斯", question:"政府支出乘數所代表的意義為何？", options:["政府支出隨時間經過呈倍數擴張", "政府支出與國民所得間呈倍數關係", "政府支出增加會使國民所得倍數增加", "政府支出增加，租稅收入也會等額增加"], answer:2, explanation:"" },
+  { id:175, scope:"期末", category:"Ch10 簡單凱因斯", question:"當經濟體系總支出太多，使均衡所得高於充分就業所得時，稱為：", options:["財政缺口", "貿易缺口", "膨脹缺口", "緊縮缺口。"], answer:3, explanation:"" },
+  { id:176, scope:"期末", category:"Ch10 簡單凱因斯", question:"在簡單二部門模型中，若邊際消費傾向為0.75，則投資乘數為何？", options:["等於4", "等於4/3", "等於3", "最少為4"], answer:3, explanation:"" },
+  { id:177, scope:"期末", category:"Ch10 簡單凱因斯", question:"假設C = 200 + 0.5Y~d~，I = 400，G = 200，T = 100，試問租稅乘數 為何？", options:["1", "-1", "2", "-2"], answer:1, explanation:"" },
+  { id:178, scope:"期末", category:"Ch10 簡單凱因斯", question:"承第17 題，此一模型中之政府稅收為﹕", options:["累進稅", "累退稅", "比例稅", "定額稅"], answer:3, explanation:"" },
+  { id:179, scope:"期末", category:"Ch10 簡單凱因斯", question:"承第17 題，請問政府支出乘數為何？", options:["1", "-1", "2", "-2"], answer:2, explanation:"" },
+  { id:180, scope:"期末", category:"Ch10 簡單凱因斯", question:"承第17 題，請問平衡預算乘數為何？", options:["1", "-1", "2", "-2。 **"], answer:0, explanation:"" },
+  { id:181, scope:"期末", category:"Ch11 貨幣與銀行", question:"阿美將手中的現金存入銀行的一年期定存，請問此舉對貨幣數量有何影響？", options:["M~1A~ 會減少，M~2~ 不變", "M~1A~ 不變，M~2~ 增加", "M~1B~ 不變，M~2~ 增加", "M~1B~ 會增加，M~2~ 會減少"], answer:0, explanation:"" },
+  { id:182, scope:"期末", category:"Ch11 貨幣與銀行", question:"下列哪一項不包括在「貨幣」統計項目內？", options:["你在銀行的活期存款", "便利商店收銀機裡的現金", "你放在家裡的現金", "銀行ATM 中的鈔票"], answer:3, explanation:"" },
+  { id:183, scope:"期末", category:"Ch11 貨幣與銀行", question:"假設名目GDP為10 兆，貨幣流通速度為5，則貨幣數量為何？", options:["5 兆", "2 兆", "10 兆", "無法判斷"], answer:1, explanation:"" },
+  { id:184, scope:"期末", category:"Ch11 貨幣與銀行", question:"若銀行接受一筆存款1,000元，則在法定準備率為10%的前提下，可以引申出多少放款？", options:["12,000元", "10,000 元", "9,000 元", "8,000元"], answer:2, explanation:"" },
+  { id:185, scope:"期末", category:"Ch11 貨幣與銀行", question:"若商銀創造存款貨幣的過程中，保留了一些超額準備金或出現現金外流的現象，則商銀所創造的存款貨幣數額會：", options:["增加", "減少", "不變", "視情況而定"], answer:1, explanation:"" },
+  { id:186, scope:"期末", category:"Ch11 貨幣與銀行", question:"當金融體系不穩定而使商銀發生擠兌時，突顯下列何種中央銀行角色的重要性？", options:["發行的銀行", "銀行的銀行", "政府的銀行", "執行政策的銀行"], answer:1, explanation:"" },
+  { id:187, scope:"期末", category:"Ch11 貨幣與銀行", question:"根據費雪（S. Fischer）的研究，發現中央銀行的獨立性指數與通貨膨脹率之關聯為：", options:["沒有關聯", "同向變動", "反向變動", "兩者變動關聯不確定"], answer:2, explanation:"" },
+  { id:188, scope:"期末", category:"Ch11 貨幣與銀行", question:"中央銀行的角色不包括以下何者？", options:["作為商業銀行的最後奧援", "控制貨幣供給量", "管理外匯市場，調節國際收支", "提供私人企業的資金借貸需求"], answer:3, explanation:"" },
+  { id:189, scope:"期末", category:"Ch11 貨幣與銀行", question:"將中央銀行官員任期延長，且其任命方式採取輪流制，則對中央銀行的獨立性指數有何影響？", options:["愈高", "降低", "不受影響", "視情況而定"], answer:0, explanation:"" },
+  { id:190, scope:"期末", category:"Ch11 貨幣與銀行", question:"根據《中央銀行法》規定，我國中央銀行目前隸屬於何者？", options:["總統府", "行政院", "財政部", "金管會"], answer:1, explanation:"" },
+  { id:191, scope:"期末", category:"Ch11 貨幣與銀行", question:"若中央銀行欲增加貨幣供給，則可採取以下何種方式？", options:["提高重貼現率", "提高存款準備率", "賣出央行持有的外匯", "買進政府債券"], answer:3, explanation:"" },
+  { id:192, scope:"期末", category:"Ch11 貨幣與銀行", question:"下列何者會使貨幣需求減少？", options:["所得提高", "其他資產報酬率下降", "預期物價上漲", "景氣熱絡"], answer:2, explanation:"" },
+  { id:193, scope:"期末", category:"Ch11 貨幣與銀行", question:"古典交易貨幣數量學說認為在實質所得與貨幣流通速度不變下，貨幣數量的增加，會引起物價水準：", options:["呈同方向、同比例上漲", "呈同方向、較小比例上漲", "呈同方向、較大比例上漲", "以上皆非"], answer:0, explanation:"" },
+  { id:194, scope:"期末", category:"Ch11 貨幣與銀行", question:"凱因斯認為人們對貨幣的需求，包括：", options:["交易動機貨幣需求", "預防動機貨幣需求", "投機動機貨幣需求", "以上皆是"], answer:3, explanation:"" },
+  { id:195, scope:"期末", category:"Ch11 貨幣與銀行", question:"關於名目利率與實質利率兩者之間的關係，下列選項何者正確？", options:["名目利率=實質利率＋貨幣供給年增率", "名目利率=實質利率＋通貨膨脹率", "實質利率=名目利率＋通貨膨脹率", "通貨膨脹率=名目利率＋實質利率。"], answer:1, explanation:"" },
+  { id:196, scope:"期末", category:"Ch11 貨幣與銀行", question:"在非洲內陸有一封閉小國，每年只生產200噸番薯以供食用；若番薯價格為每噸$6，而貨幣供給為$400，則貨幣流通速度為何？", options:["1", "2", "3", "4"], answer:2, explanation:"" },
+  { id:197, scope:"期末", category:"Ch11 貨幣與銀行", question:"當人們增加貨幣需求時，則下列選項何者正確？", options:["增加貨幣流通速度", "減低貨幣流通速度", "對貨幣流通速度沒有影響", "促使中央銀行增加貨幣供給"], answer:1, explanation:"" },
+  { id:198, scope:"期末", category:"Ch11 貨幣與銀行", question:"下列哪一項係央行「以價制量」的措施，以影響貨幣供給額？", options:["應提準備率", "重貼現率", "公開市場操作", "以上皆是"], answer:1, explanation:"" },
+  { id:199, scope:"期末", category:"Ch11 貨幣與銀行", question:"基於投機動機而產生的貨幣需求，係表現貨幣的何種功能？", options:["交易媒介", "延期支付", "價值儲存", "以上皆非"], answer:2, explanation:"" },
+  { id:200, scope:"期末", category:"Ch11 貨幣與銀行", question:"假設通貨膨脹率為5%；若您借給某位好友2,000 元，並言明名目利率是10%，則您的實質利息收入為多少？", options:["200 元", "100 元", "95 元", "5 元。 **"], answer:1, explanation:"" },
+  { id:201, scope:"期末", category:"Ch12 IS-LM模型", question:"IS－LM 理論模型中，下列何者為真？", options:["IS曲線是正斜率", "LM 曲線是負斜率", "假設利率水準不變", "假設物價水準不變"], answer:3, explanation:"" },
+  { id:202, scope:"期末", category:"Ch12 IS-LM模型", question:"下列哪一條曲線代表利率與所得之間為正相關？", options:["實質貨幣供給線", "實質貨幣需求線", "IS曲線", "LM 曲線"], answer:3, explanation:"" },
+  { id:203, scope:"期末", category:"Ch12 IS-LM模型", question:"IS－LM 理論模型所探討的兩個市場分別為下列何者？", options:["勞動市場和貨幣市場", "商品市場和貨幣市場", "勞動市場和商品市場", "商品市場和外匯市場"], answer:1, explanation:"" },
+  { id:204, scope:"期末", category:"Ch12 IS-LM模型", question:"IS曲線及LM 曲線之交點，可以決定下列何者？", options:["均衡利率", "均衡物價", "均衡勞動量", "均衡實質工資率"], answer:0, explanation:"" },
+  { id:205, scope:"期末", category:"Ch12 IS-LM模型", question:"在IS－LM模型中，物價下降將會導致：", options:["投資需求下降", "消費需求下降", "利率下降", "均衡總產出下降"], answer:2, explanation:"" },
+  { id:206, scope:"期末", category:"Ch12 IS-LM模型", question:"在IS－LM模型中，當自發性消費增加時，下列何者正確？", options:["利率會下降", "利率會上升", "IS曲線左移", "所得水準下降"], answer:1, explanation:"" },
+  { id:207, scope:"期末", category:"Ch12 IS-LM模型", question:"根據IS－LM模型，若廠商因對經濟感到樂觀而增加投資需求，則所得與利率會有何改變？", options:["所得增加；利率下降", "所得增加；利率上升", "所得減少；利率下降", "所得減少；利率上升"], answer:1, explanation:"" },
+  { id:208, scope:"期末", category:"Ch12 IS-LM模型", question:"若中央銀行在公開市場賣出債券，下列敘述何者正確？", options:["利率提高且貨幣供給增加", "利率提高且貨幣供給減少", "利率降低且貨幣供給增加", "利率降低且貨幣供給減少"], answer:1, explanation:"" },
+  { id:209, scope:"期末", category:"Ch12 IS-LM模型", question:"當景氣低迷時，政府可採取公共支出或稅賦的財政政策來刺激景氣。", options:["增加；減少", "增加；增加", "減少；減少", "減少；增加"], answer:0, explanation:"" },
+  { id:210, scope:"期末", category:"Ch12 IS-LM模型", question:"當利率低到不能再低時：", options:["貨幣政策和財政政策均有效", "貨幣政策和財政政策均無效", "貨幣政策無效，但財政政策有效", "貨幣政策有效，但財政政策無效"], answer:2, explanation:"" },
+  { id:211, scope:"期末", category:"Ch12 IS-LM模型", question:"凱因斯模型中的排擠效果，說明的是：", options:["民間支出增加，均衡利率下降，排擠政府的消費與投資", "政府支出增加，均衡利率下降，排擠民間的消費與投資", "民間支出增加，均衡利率上升，排擠政府的消費與投資", "政府支出增加，均衡利率上升，排擠民間的消費與投資"], answer:3, explanation:"" },
+  { id:212, scope:"期末", category:"Ch12 IS-LM模型", question:"當國內經濟不景氣時，政府可能採行的政策很多，但並不包括：", options:["在公開市場買進公債", "通過獎勵投資條例，對投資提供租稅獎勵", "對私部門減稅或補貼", "提高重貼現率"], answer:3, explanation:"" },
+  { id:213, scope:"期末", category:"Ch12 IS-LM模型", question:"根據IS－LM模型，當中央銀行想藉公開市場操作降低利率，則中央銀行應如何操作？影響會是如何？", options:["買債券；IS右移", "買債券；LM 右移", "賣債券；IS右移", "賣債券；LM 右移"], answer:1, explanation:"" },
+  { id:214, scope:"期末", category:"Ch12 IS-LM模型", question:"若物價固定不變，緊縮性的財政政策會造成：", options:["所得增加和利率下跌", "所得增加和利率上升", "所得減少和利率下跌", "所得減少和利率上升"], answer:2, explanation:"" },
+  { id:215, scope:"期末", category:"Ch12 IS-LM模型", question:"若「新冠肺炎」疫情持續的擴大，則對經濟體短期可能造成：", options:["LM 線左移，景氣下降", "LM 線右移，利率下降", "IS線右移，利率上升", "IS線左移，景氣下降。"], answer:3, explanation:"" },
+  { id:216, scope:"期末", category:"Ch12 IS-LM模型", question:"在其他條件不變之下，如果在政府支出減少的同一時間，中央銀行進行擴張性的貨幣政策，最可能造成：", options:["所得下降", "利率上升", "所得上升", "利率下降"], answer:3, explanation:"" },
+  { id:217, scope:"期末", category:"Ch12 IS-LM模型", question:"擴張性財政政策與擴張性貨幣政策的最終結果有何異同？", options:["兩者都使所得上升，利率則是一升一降", "兩者都使所得下降，利率則是一升一降", "兩者都使利率上升，所得則是一升一降", "兩者都使利率下降，所得則是一升一降"], answer:0, explanation:"" },
+  { id:218, scope:"期末", category:"Ch12 IS-LM模型", question:"根據IS LM模型，自發性消費支出增加時，中央銀行要釘住利率，可以採下列何種政策？", options:["減少貨幣供給", "增加貨幣供給", "增加政府支出", "增加自發性投資支出"], answer:1, explanation:"" },
+  { id:219, scope:"期末", category:"Ch12 IS-LM模型", question:"當一經濟體系處於「流動性陷阱」時，對於擴張所得：", options:["貨幣政策極有效，財政政策幾無效果", "貨幣政策幾無效果，財政政策極有效", "貨幣政策與財政政策都完全無效果", "貨幣政策與財政政策都極有效"], answer:1, explanation:"" },
+  { id:220, scope:"期末", category:"Ch12 IS-LM模型", question:"假如消費是C= 200 + 0.75 (Y-T)且投資為I = 200-25r，其中Y為所得，T為稅收，r 為利率，則IS曲線的方程式為何？", options:["Y=400-0.75T-25r +G", "Y = 1,600-3T-100r+4G", "Y = 400 + 0.75T-25r-G", "Y = 1,600 + 3T-100r-4G"], answer:1, explanation:"" },
+  { id:221, scope:"期末", category:"Ch13 總供需模型", question:"總合需求曲線代表哪兩個市場達成均衡？", options:["貨幣市場與勞動市場", "貨幣市場與商品市場", "勞動市場與商品市場", "商品市場與外匯市場"], answer:1, explanation:"" },
+  { id:222, scope:"期末", category:"Ch13 總供需模型", question:"其他條件不變下，下列何者會使得總合需求曲線向左方移動？", options:["本國貨幣貶值", "政府支出增加", "調升重貼現率", "預期未來收入增加"], answer:2, explanation:"" },
+  { id:223, scope:"期末", category:"Ch13 總供需模型", question:"下列何項因素可使總合需求曲線向右移動？", options:["原物料價格下跌", "勞動稟賦增加", "廠商預期未來獲利增加", "技術進步"], answer:2, explanation:"" },
+  { id:224, scope:"期末", category:"Ch13 總供需模型", question:"其他條件不變下，下列何者會使得總合需求曲線向右方移動？", options:["股價狂跌", "物價下跌", "房價大跌", "稅率下降"], answer:3, explanation:"" },
+  { id:225, scope:"期末", category:"Ch13 總供需模型", question:"其他條件不變下，下列何者會使得短期總合供給曲線向右方移動？", options:["油價下跌", "物價下跌", "股價下跌", "房價下跌"], answer:0, explanation:"" },
+  { id:226, scope:"期末", category:"Ch13 總供需模型", question:"下列何項因素可使總合供給曲線向右移動？", options:["採取擴張性貨幣政策", "採取緊縮性財政政策", "實施匯率貶值策略", "勞動供給增加"], answer:3, explanation:"" },
+  { id:227, scope:"期末", category:"Ch13 總供需模型", question:"下列何者不是短期總合供給曲線左移的原因？", options:["租金上升", "勞動稟賦減少", "原物料價格上升", "技術進步"], answer:3, explanation:"" },
+  { id:228, scope:"期末", category:"Ch13 總供需模型", question:"當物價完全僵固時，總合供給曲線為：", options:["垂直線", "水平線", "負斜率", "向後彎的曲線"], answer:1, explanation:"" },
+  { id:229, scope:"期末", category:"Ch13 總供需模型", question:"充分就業下的總合供給曲線為：", options:["垂直線", "水平線", "負斜率", "向後彎的曲線"], answer:0, explanation:"" },
+  { id:230, scope:"期末", category:"Ch13 總供需模型", question:"短期時，政府採取緊縮性的財政政策，則：", options:["物價上漲，產出增加", "物價下跌，產出減少", "物價上漲，產出不變", "物價下跌，產出不變"], answer:1, explanation:"" },
+  { id:231, scope:"期末", category:"Ch13 總供需模型", question:"當中央銀行採取緊縮貨幣政策，將對短期均衡產生何種影響？", options:["總合供給與物價水準均增加", "總合需求與物價水準均下跌", "總合供給與物價水準均下跌", "總合需求與總合供給均下跌"], answer:1, explanation:"" },
+  { id:232, scope:"期末", category:"Ch13 總供需模型", question:"根據總合供需模型，政府採取擴張性財政政策在長期會造成下列何種影響？", options:["物價上揚", "利率走低", "產出下降", "失業增加"], answer:0, explanation:"" },
+  { id:233, scope:"期末", category:"Ch13 總供需模型", question:"如果總合供給曲線為一垂直線，則總合需求的改變將會：", options:["不影響產出與價格水準", "同時改變產出與價格水準", "改變產出水準，但不影響價格水準", "改變價格水準，但不影響產出水準"], answer:3, explanation:"" },
+  { id:234, scope:"期末", category:"Ch13 總供需模型", question:"某一經濟體系的所得水準低於充分就業的所得水準，則下列哪一項變動會使得該經濟體系的均衡所得與物價水準同時上升？", options:["油價下跌", "稅率下降", "股價下跌", "房價下跌"], answer:1, explanation:"" },
+  { id:235, scope:"期末", category:"Ch13 總供需模型", question:"其他情況不變下，AS曲線右移將造成以下何種結果？", options:["物價、產出同時上升", "物價、產出同時下降", "物價上升，產出下降", "物價下降，產出上升。"], answer:3, explanation:"" },
+  { id:236, scope:"期末", category:"Ch13 總供需模型", question:"某一經濟體系的所得水準低於充分就業的所得水準，若該經濟體系的政府支出增加，則該經濟體系所得與物價水準會有什麼變化？", options:["所得與物價水準皆不變", "所得與物價水準皆上升", "所得水準不變，但物價水準上升", "所得水準上升，但物價水準不變"], answer:1, explanation:"" },
+  { id:237, scope:"期末", category:"Ch13 總供需模型", question:"欲降低物價水準，中央銀行可採取何種措施？", options:["調降重貼現率", "在公開市場買進政府公債", "在公開市場賣出政府公債", "調降法定存款準備率"], answer:2, explanation:"" },
+  { id:238, scope:"期末", category:"Ch13 總供需模型", question:"股市繁榮、股價飆漲而影響總合需求時，中央銀行可以採取下列何項措施來抵銷該影響？", options:["調高應提準備率", "調降應提準備率", "調降重貼現率", "買進債券"], answer:0, explanation:"" },
+  { id:239, scope:"期末", category:"Ch13 總供需模型", question:"長期時，央行採取緊縮性的貨幣政策，則：", options:["物價上漲，產出增加", "物價上漲，產出減少", "物價上漲，產出不變", "物價下跌，產出不變"], answer:3, explanation:"" },
+  { id:240, scope:"期末", category:"Ch13 總供需模型", question:"長期時，下列何者使得產出增加、物價下跌？", options:["技術進步", "原物料價格下跌", "勞動的邊際生產力提升", "以上皆是"], answer:3, explanation:"" },
+  { id:241, scope:"期末", category:"Ch14 失業與通膨", question:"所謂「痛苦指數」是指下列哪兩者的合計？", options:["失業率和物價膨脹率", "失業率和匯率貶值率", "匯率貶值率和通貨膨脹率", "通貨膨脹率和貨幣成長率"], answer:0, explanation:"" },
+  { id:242, scope:"期末", category:"Ch14 失業與通膨", question:"高物價膨脹率與高失業率並存的現象，稱為：", options:["成本推動型的物價膨脹", "需求拉動型的物價膨脹", "停滯性膨脹", "結構性膨脹"], answer:2, explanation:"" },
+  { id:243, scope:"期末", category:"Ch14 失業與通膨", question:"失業率的計算公式為：", options:["失業人口／勞動力人口×100%", "失業人口／非勞動力人口×100%", "失業人口／就業人口×100%", "失業人口／全國人口×100%"], answer:0, explanation:"" },
+  { id:244, scope:"期末", category:"Ch14 失業與通膨", question:"目前正在大學就讀的學生，屬於：", options:["失業人口", "就業人口", "勞動力人口", "非勞動力人口"], answer:3, explanation:"" },
+  { id:245, scope:"期末", category:"Ch14 失業與通膨", question:"因為高科技業的興起，使原有勞工因技術不足而產生的失業，稱之：", options:["摩擦性失業", "結構性失業", "循環性失業", "季節性失業"], answer:1, explanation:"" },
+  { id:246, scope:"期末", category:"Ch14 失業與通膨", question:"因為市場訊息不完全或勞動力缺少流動性而產生的失業，稱之：", options:["結構性失業", "隱藏性失業", "循環性失業", "摩擦性失業"], answer:3, explanation:"" },
+  { id:247, scope:"期末", category:"Ch14 失業與通膨", question:"因為景氣波動而產生的失業現象，稱之：", options:["結構性失業", "隱藏性失業", "循環性失業", "摩擦性失業"], answer:2, explanation:"" },
+  { id:248, scope:"期末", category:"Ch14 失業與通膨", question:"自然失業率包括以下哪兩種失業型態？", options:["隱藏性失業與結構性失業", "隱藏性失業與循環性失業", "摩擦性失業與循環性失業", "摩擦性失業與結構性失業"], answer:3, explanation:"" },
+  { id:249, scope:"期末", category:"Ch14 失業與通膨", question:"下列何者不是物價膨脹的成因？", options:["貨幣供給減少", "貨幣供給增加", "薪資上升", "原物料價格、租金上漲"], answer:0, explanation:"" },
+  { id:250, scope:"期末", category:"Ch14 失業與通膨", question:"下列哪一種物價指數可以反映大宗物資價格的波動？", options:["躉售物價指數", "消費者物價指數", "國內生產毛額平減指數", "國民生產毛額平減指數"], answer:0, explanation:"" },
+  { id:251, scope:"期末", category:"Ch14 失業與通膨", question:"就短期而言，菲力普曲線應是什麼樣的形狀？", options:["呈正相關", "呈負相關", "與X軸垂直", "與X軸平行"], answer:1, explanation:"" },
+  { id:252, scope:"期末", category:"Ch14 失業與通膨", question:"菲力普曲線指出當社會失業率偏高時，經濟體系的物價上漲率應：", options:["升高", "不變", "降低", "不受影響"], answer:2, explanation:"" },
+  { id:253, scope:"期末", category:"Ch14 失業與通膨", question:"當物價水準快速並大幅上漲，稱之：", options:["溫合物價膨脹", "惡性物價膨脹", "停滯性膨脹", "結構型物價膨脹"], answer:1, explanation:"" },
+  { id:254, scope:"期末", category:"Ch14 失業與通膨", question:"消費者對於商品或勞務的總合需求增加超過總合供給的增加時，所造成的物價上漲現象，稱之：", options:["成本推動型物價膨脹", "結構型物價膨脹", "輸入型物價膨脹", "需求拉動型物價膨脹"], answer:3, explanation:"" },
+  { id:255, scope:"期末", category:"Ch14 失業與通膨", question:"因為生產成本上漲，造成供給減少所引發物價膨脹的現象：", options:["成本推動型物價膨脹", "結構型物價膨脹", "惡性物價膨脹", "需求拉動型物價膨脹。"], answer:0, explanation:"" },
+  { id:256, scope:"期末", category:"Ch14 失業與通膨", question:"出現哪一種失業時，勞動者的邊際生產量為零？", options:["結構性失業", "隱藏性失業", "循環性失業", "摩擦性失業"], answer:1, explanation:"" },
+  { id:257, scope:"期末", category:"Ch14 失業與通膨", question:"下列哪一項因素不會影響自然失業率的高低？", options:["景氣循環變動", "產業結構的改變", "人力銀行的興起", "增設職業訓練中心"], answer:0, explanation:"" },
+  { id:258, scope:"期末", category:"Ch14 失業與通膨", question:"下列關於「充分就業」的敘述，何者為是？", options:["整個經濟體系的失業人數≦循環性失業人數時，即可稱充分就業", "充分就業下實際的失業率為0", "在充分就業下，經濟體系仍有失業的存在，此種失業稱為「自然失業」", "整個經濟體系只存在「非自願性失業」時，即可稱為充分就業"], answer:2, explanation:"" },
+  { id:259, scope:"期末", category:"Ch14 失業與通膨", question:"「需求拉動型物價膨脹」與「成本推動型物價膨脹」有何相同及相異之處？", options:["對物價與所得的影響均相同", "對物價與所得的影響均不同", "對物價的影響不同，對所得的影響相同", "對物價的影響相同，對所得的影響不同"], answer:3, explanation:"" },
+  { id:260, scope:"期末", category:"Ch14 失業與通膨", question:"政府可以採取何種方式去降低自然失業率？", options:["消除勞動力流動的阻礙因素", "採用擴張性財政政策", "寬鬆的貨幣政策", "以上皆是。 **"], answer:3, explanation:"" }
+];
+
+
+
+const shuffle = (arr) => {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+};
+
+const LABELS = ["A", "B", "C", "D"];
+const QUIZ_SIZE = 10;
+
+function parseSheetCSV(csvText) {
+  const result = Papa.parse(csvText.trim(), { header: false, skipEmptyLines: true });
+  const rows = result.data;
+  if (rows.length < 2) return [];
+  return rows.slice(1).map((r, i) => {
+    const answerMap = { A: 0, B: 1, C: 2, D: 3 };
+    return {
+      id: i + 1, scope: (r[0] || "").trim(), category: (r[1] || "").trim(),
+      question: (r[2] || "").trim(),
+      options: [(r[3]||"").trim(), (r[4]||"").trim(), (r[5]||"").trim(), (r[6]||"").trim()],
+      answer: answerMap[(r[7] || "").trim().toUpperCase()] ?? 0,
+      explanation: (r[8] || "").trim(),
+    };
+  }).filter(q => q.question.length > 0);
+}
+
+function extractSheetId(input) {
+  if (!input) return null;
+  const m = input.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if (m) return m[1];
+  if (/^[a-zA-Z0-9_-]{20,}$/.test(input.trim())) return input.trim();
+  return null;
+}
+
+const T = {
+  bg: "linear-gradient(165deg, #0f1923 0%, #1a2a3a 40%, #0d2137 100%)",
+  accent: "#38bdf8", accentGrad: "linear-gradient(135deg, #38bdf8, #0ea5e9)",
+  green: "#34d399", red: "#f87171", orange: "#fb923c", purple: "#c084fc", amber: "#fbbf24",
+  t1: "#f0f9ff", t2: "#e2e8f0", t3: "#cbd5e1", t4: "#94a3b8", t5: "#64748b", t6: "#475569",
+  card: "rgba(255,255,255,0.04)", brd: "rgba(255,255,255,0.08)", brdL: "rgba(255,255,255,0.06)",
+  font: "'Noto Sans TC', 'Helvetica Neue', sans-serif",
+};
+const page = { minHeight: "100vh", background: T.bg, fontFamily: T.font, position: "relative", overflow: "hidden" };
+
+const SCOPES = [
+  { key: "全部", label: "全範圍", icon: "📚", color: T.accent },
+  { key: "期中", label: "期中考", icon: "📝", color: T.amber },
+  { key: "期末", label: "期末考", icon: "📖", color: T.purple },
+];
+
+function SettingsPanel({ sheetUrl, onSave, onClose }) {
+  const [url, setUrl] = useState(sheetUrl || "");
+  const [testing, setTesting] = useState(false);
+  const [result, setResult] = useState(null);
+  const handleTest = async () => {
+    setTesting(true); setResult(null);
+    const id = extractSheetId(url);
+    if (!id) { setResult({ ok: false, msg: "無法辨識試算表 ID" }); setTesting(false); return; }
+    try {
+      const res = await fetch(`https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv`);
+      if (!res.ok) throw new Error();
+      const text = await res.text();
+      const qs = parseSheetCSV(text);
+      if (qs.length > 0) {
+        const mid = qs.filter(q => q.scope === "期中").length;
+        const fin = qs.filter(q => q.scope === "期末").length;
+        setResult({ ok: true, msg: `成功載入 ${qs.length} 題（期中${mid}、期末${fin}）` });
+      } else { setResult({ ok: false, msg: "找不到題目，請確認欄位格式" }); }
+    } catch { setResult({ ok: false, msg: "無法連線，請確認已「發佈到網路」" }); }
+    setTesting(false);
+  };
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)", display: "flex", alignItems: "flex-end", justifyContent: "center", animation: "fadeIn 0.2s ease" }}>
+      <div style={{ width: "100%", maxWidth: 480, background: "#1e293b", borderRadius: "24px 24px 0 0", padding: "28px 24px 40px", animation: "slideUp 0.3s ease", maxHeight: "90vh", overflowY: "auto" }}>
+        <div style={{ width: 36, height: 4, borderRadius: 2, background: "rgba(255,255,255,0.15)", margin: "0 auto 20px" }} />
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+          <h3 style={{ color: T.t1, fontSize: 20, fontWeight: 700, margin: 0 }}>⚙️ 題庫設定</h3>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: T.t5, fontSize: 24, cursor: "pointer", padding: 4 }}>×</button>
+        </div>
+        <p style={{ color: T.t4, fontSize: 13, lineHeight: 1.7, margin: "0 0 6px" }}>貼上 Google 試算表網址，可替換或擴充題庫。</p>
+        <div style={{ background: "rgba(56,189,248,0.06)", borderRadius: 10, padding: "12px 14px", margin: "0 0 16px", border: "1px solid rgba(56,189,248,0.12)" }}>
+          <div style={{ color: T.accent, fontSize: 12, fontWeight: 700, marginBottom: 8 }}>📋 欄位格式</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "4px 6px", fontSize: 11, color: T.t4 }}>
+            {["A: 範圍", "B: 分類", "C: 題目", "D: 選項A", "E: 選項B", "F: 選項C", "G: 選項D", "H: 答案(A~D)", "I: 解析"].map((s, i) => (
+              <span key={i} style={{ background: i === 0 ? "rgba(251,191,36,0.12)" : "rgba(255,255,255,0.04)", borderRadius: 4, padding: "3px 6px", textAlign: "center", color: i === 0 ? T.amber : T.t4, fontWeight: i === 0 ? 600 : 400 }}>{s}</span>
+            ))}
+          </div>
+          <p style={{ color: T.t5, fontSize: 11, margin: "8px 0 0" }}>A 欄填 <b style={{ color: T.amber }}>期中</b> 或 <b style={{ color: T.purple }}>期末</b>。</p>
+        </div>
+        <input type="text" value={url} onChange={e => { setUrl(e.target.value); setResult(null); }} placeholder="貼上 Google 試算表網址..."
+          style={{ width: "100%", padding: "14px 16px", background: "rgba(255,255,255,0.06)", border: `1px solid ${T.brd}`, borderRadius: 12, color: T.t2, fontSize: 14, fontFamily: T.font, outline: "none", boxSizing: "border-box" }}
+          onFocus={e => e.target.style.borderColor = T.accent} onBlur={e => e.target.style.borderColor = T.brd} />
+        {result && (
+          <div style={{ marginTop: 12, padding: "10px 14px", borderRadius: 10, background: result.ok ? "rgba(52,211,153,0.1)" : "rgba(248,113,113,0.1)", color: result.ok ? T.green : T.red, fontSize: 13, fontWeight: 500 }}>{result.ok ? "✅" : "❌"} {result.msg}</div>
+        )}
+        <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
+          <button onClick={handleTest} disabled={testing || !url.trim()} style={{ flex: 1, padding: "14px 0", background: "rgba(255,255,255,0.06)", border: `1px solid ${T.brd}`, borderRadius: 12, color: T.t3, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: T.font, opacity: testing || !url.trim() ? 0.4 : 1 }}>
+            {testing ? "測試中..." : "測試連線"}
+          </button>
+          <button onClick={() => onSave(url)} style={{ flex: 1, padding: "14px 0", background: T.accentGrad, border: "none", borderRadius: 12, color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>儲存設定</button>
+        </div>
+        {sheetUrl && (
+          <button onClick={() => onSave("")} style={{ width: "100%", marginTop: 10, padding: "12px 0", background: "none", border: "none", color: T.red, fontSize: 13, cursor: "pointer", fontFamily: T.font, opacity: 0.7 }}>清除連結（改用內建題庫）</button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function HomeScreen({ onStart, stats, onOpenSettings, allQuestions, source }) {
+  const [selectedScope, setSelectedScope] = useState("全部");
+  const total = stats.correct + stats.wrong;
+  const rate = total > 0 ? Math.round((stats.correct / total) * 100) : 0;
+  const getCount = (key) => key === "全部" ? allQuestions.length : allQuestions.filter(q => q.scope === key).length;
+  const filteredCount = getCount(selectedScope);
+  return (
+    <div style={{ ...page, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 28px" }}>
+      <div style={{ position: "absolute", top: -120, right: -80, width: 300, height: 300, borderRadius: "50%", background: "radial-gradient(circle, rgba(56,189,248,0.08) 0%, transparent 70%)" }} />
+      <div style={{ position: "absolute", bottom: -60, left: -40, width: 200, height: 200, borderRadius: "50%", background: "radial-gradient(circle, rgba(251,191,36,0.06) 0%, transparent 70%)" }} />
+      <button onClick={onOpenSettings} style={{ position: "absolute", top: 20, right: 20, background: "rgba(255,255,255,0.06)", border: "none", width: 56, height: 56, borderRadius: 16, color: T.t5, fontSize: 32, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>⚙</button>
+      <div style={{ width: 120, height: 120, borderRadius: 32, background: T.accentGrad, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 60, marginBottom: 28, boxShadow: "0 16px 48px rgba(56,189,248,0.25)" }}>📊</div>
+      <h1 style={{ color: T.t1, fontSize: 52, fontWeight: 800, margin: 0, letterSpacing: -1 }}>經濟學題庫</h1>
+      <p style={{ color: source === "sheet" ? T.green : T.t5, fontSize: 22, margin: "12px 0 32px", display: "flex", alignItems: "center", gap: 8 }}>
+        {source === "sheet" ? "🟢 已連結試算表" : "📦 內建題庫"} — 共 {allQuestions.length} 題
+      </p>
+      <div style={{ width: "100%", maxWidth: 560, marginBottom: 32 }}>
+        <p style={{ color: T.t4, fontSize: 22, fontWeight: 600, margin: "0 0 14px", letterSpacing: 0.5 }}>選擇範圍</p>
+        <div style={{ display: "flex", gap: 12 }}>
+          {SCOPES.map(s => {
+            const active = selectedScope === s.key;
+            const count = getCount(s.key);
+            return (
+              <button key={s.key} onClick={() => setSelectedScope(s.key)} style={{
+                flex: 1, padding: "20px 8px 18px", borderRadius: 18,
+                background: active ? `${s.color}15` : T.card,
+                border: active ? `2px solid ${s.color}50` : `1px solid ${T.brdL}`,
+                cursor: "pointer", fontFamily: T.font, transition: "all 0.2s ease",
+                display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
+              }}>
+                <span style={{ fontSize: 40 }}>{s.icon}</span>
+                <span style={{ color: active ? s.color : T.t4, fontSize: 24, fontWeight: 700 }}>{s.label}</span>
+                <span style={{ color: active ? s.color : T.t5, fontSize: 20, opacity: 0.8 }}>{count} 題</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      {total > 0 && (
+        <div style={{ display: "flex", gap: 14, marginBottom: 32, width: "100%", maxWidth: 560 }}>
+          {[{ label: "已作答", value: total, color: T.accent }, { label: "正確率", value: `${rate}%`, color: rate >= 70 ? T.green : T.orange }, { label: "連對", value: stats.streak, color: T.purple }].map((s, i) => (
+            <div key={i} style={{ flex: 1, background: T.card, borderRadius: 16, padding: "18px 8px", textAlign: "center", border: `1px solid ${T.brdL}` }}>
+              <div style={{ color: s.color, fontSize: 36, fontWeight: 700 }}>{s.value}</div>
+              <div style={{ color: T.t5, fontSize: 20, marginTop: 4 }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+      )}
+      <button onClick={() => filteredCount > 0 && onStart(selectedScope)} disabled={filteredCount === 0}
+        style={{ width: "100%", maxWidth: 560, padding: "24px 0", background: T.accentGrad, border: "none", borderRadius: 20, color: "#fff", fontSize: 32, fontWeight: 700, cursor: filteredCount > 0 ? "pointer" : "not-allowed", boxShadow: "0 8px 32px rgba(56,189,248,0.3)", fontFamily: T.font, opacity: filteredCount > 0 ? 1 : 0.4 }}
+        onMouseDown={e => filteredCount > 0 && (e.currentTarget.style.transform = "scale(0.97)")} onMouseUp={e => e.currentTarget.style.transform = "scale(1)"}>
+        {filteredCount === 0 ? "此範圍尚無題目" : `開始練習（${Math.min(QUIZ_SIZE, filteredCount)} 題）`}
+      </button>
+      {total > 0 && <button onClick={() => window.__resetStats?.()} style={{ marginTop: 20, background: "none", border: "none", color: T.t6, fontSize: 24, cursor: "pointer", fontFamily: T.font }}>重置紀錄</button>}
+
+      {/* Disclaimer */}
+      <p style={{
+        marginTop: 40, maxWidth: 560, textAlign: "center",
+        color: "rgba(100,116,139,0.5)", fontSize: 18, lineHeight: 1.6,
+        padding: "0 12px",
+      }}>
+        ⚠️ 免責聲明：本題庫僅供課堂學習與自我練習使用，不代表正式考試內容。題目與解析僅供參考，正確性以課本及授課教師為準。使用者應自行判斷答案之適用性，本工具不對任何考試結果負責。
+      </p>
+    </div>
+  );
+}
+
+function QuizScreen({ question, qIndex, total, onAnswer, selected, revealed, scopeLabel }) {
+  const scopeColor = scopeLabel === "期中考" ? T.amber : scopeLabel === "期末考" ? T.purple : T.accent;
+  return (
+    <div style={{ ...page, display: "flex", flexDirection: "column" }}>
+      <div style={{ padding: "16px 20px 12px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <span style={{ color: scopeColor, fontSize: 12, fontWeight: 700, background: `${scopeColor}18`, padding: "4px 10px", borderRadius: 8, border: `1px solid ${scopeColor}30` }}>{scopeLabel}</span>
+          <span style={{ color: T.accent, fontSize: 12, fontWeight: 600, background: "rgba(56,189,248,0.1)", padding: "4px 10px", borderRadius: 8 }}>{question.category || "經濟學"}</span>
+        </div>
+        <span style={{ color: T.t5, fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", marginLeft: 8 }}>{qIndex + 1}/{total}</span>
+      </div>
+      <div style={{ margin: "0 20px 16px", height: 4, borderRadius: 2, background: T.brdL }}>
+        <div style={{ height: "100%", borderRadius: 2, width: `${((qIndex + 1) / total) * 100}%`, background: T.accentGrad, transition: "width 0.4s ease" }} />
+      </div>
+      <div style={{ padding: "0 20px 20px", flex: 1, overflowY: "auto" }}>
+        <h2 style={{ color: T.t2, fontSize: 17, fontWeight: 600, lineHeight: 1.65, margin: "0 0 22px" }}>{question.question}</h2>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {question.options.map((opt, i) => {
+            const isSel = selected === i, isCorr = i === question.answer;
+            let bg = T.card, bdr = `1px solid ${T.brd}`, lBg = T.brdL, lCol = T.t4, tCol = T.t3;
+            if (revealed) {
+              if (isCorr) { bg = "rgba(52,211,153,0.1)"; bdr = "1px solid rgba(52,211,153,0.3)"; lBg = T.green; lCol = "#fff"; tCol = T.green; }
+              else if (isSel) { bg = "rgba(248,113,113,0.1)"; bdr = "1px solid rgba(248,113,113,0.3)"; lBg = T.red; lCol = "#fff"; tCol = T.red; }
+            } else if (isSel) { bg = "rgba(56,189,248,0.1)"; bdr = "1px solid rgba(56,189,248,0.3)"; lBg = T.accent; lCol = "#fff"; tCol = T.accent; }
+            return (
+              <button key={i} onClick={() => !revealed && onAnswer(i)} disabled={revealed} style={{
+                display: "flex", alignItems: "center", gap: 12, padding: "13px 14px", background: bg, border: bdr, borderRadius: 14,
+                cursor: revealed ? "default" : "pointer", textAlign: "left", fontFamily: T.font, transition: "all 0.2s ease",
+              }}>
+                <span style={{ minWidth: 30, height: 30, borderRadius: 9, background: lBg, color: lCol, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
+                  {revealed && isCorr ? "✓" : revealed && isSel && !isCorr ? "✗" : LABELS[i]}
+                </span>
+                <span style={{ color: tCol, fontSize: 14, lineHeight: 1.5, fontWeight: isSel || (revealed && isCorr) ? 600 : 400 }}>{opt}</span>
+              </button>
+            );
+          })}
+        </div>
+        {revealed && question.explanation && (
+          <div style={{ marginTop: 20, padding: 16, background: "rgba(56,189,248,0.06)", borderRadius: 14, borderLeft: `3px solid ${T.accent}`, animation: "fadeUp 0.3s ease" }}>
+            <div style={{ color: T.accent, fontSize: 12, fontWeight: 700, marginBottom: 6 }}>💡 解析</div>
+            <p style={{ color: T.t4, fontSize: 14, lineHeight: 1.7, margin: 0 }}>{question.explanation}</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ResultScreen({ correct, total, onHome, onRetry, scopeLabel }) {
+  const rate = Math.round((correct / total) * 100);
+  const emoji = rate === 100 ? "🏆" : rate >= 80 ? "🎉" : rate >= 60 ? "👍" : "💪";
+  const msg = rate === 100 ? "滿分！太厲害了！" : rate >= 80 ? "表現優異！" : rate >= 60 ? "不錯，繼續加油！" : "多練習幾次吧！";
+  return (
+    <div style={{ ...page, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 24px" }}>
+      <div style={{ fontSize: 64, marginBottom: 20 }}>{emoji}</div>
+      <h2 style={{ color: T.t1, fontSize: 26, fontWeight: 800, margin: "0 0 6px" }}>{msg}</h2>
+      <p style={{ color: T.t5, fontSize: 14, margin: "0 0 28px" }}>{scopeLabel} · 本回合成績</p>
+      <div style={{ position: "relative", width: 160, height: 160, marginBottom: 32 }}>
+        <svg width="160" height="160" viewBox="0 0 160 160">
+          <circle cx="80" cy="80" r="68" fill="none" stroke={T.brdL} strokeWidth="10" />
+          <circle cx="80" cy="80" r="68" fill="none" stroke={rate >= 70 ? T.green : T.orange} strokeWidth="10" strokeLinecap="round" strokeDasharray={`${(rate / 100) * 427} 427`} transform="rotate(-90 80 80)" style={{ transition: "stroke-dasharray 1s ease" }} />
+        </svg>
+        <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+          <span style={{ color: rate >= 70 ? T.green : T.orange, fontSize: 36, fontWeight: 800 }}>{rate}%</span>
+          <span style={{ color: T.t5, fontSize: 13 }}>{correct} / {total}</span>
+        </div>
+      </div>
+      <button onClick={onRetry} style={{ width: "100%", maxWidth: 320, padding: "18px 0", background: T.accentGrad, border: "none", borderRadius: 16, color: "#fff", fontSize: 17, fontWeight: 700, cursor: "pointer", boxShadow: "0 8px 32px rgba(56,189,248,0.3)", fontFamily: T.font, marginBottom: 12 }}
+        onMouseDown={e => e.currentTarget.style.transform = "scale(0.97)"} onMouseUp={e => e.currentTarget.style.transform = "scale(1)"}>再來一輪</button>
+      <button onClick={onHome} style={{ width: "100%", maxWidth: 320, padding: "16px 0", background: T.card, border: `1px solid ${T.brd}`, borderRadius: 16, color: T.t4, fontSize: 15, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>回首頁</button>
+    </div>
+  );
+}
+
+function EconomicsQuiz() {
+  const [screen, setScreen] = useState("home");
+  const [showSettings, setShowSettings] = useState(false);
+  const [sheetUrl, setSheetUrl] = useState("");
+  const [allQuestions, setAllQuestions] = useState(DEFAULT_QUESTIONS);
+  const [source, setSource] = useState("builtin");
+  const [loading, setLoading] = useState(true);
+  const [currentScope, setCurrentScope] = useState("全部");
+  const [questions, setQuestions] = useState([]);
+  const [currentQ, setCurrentQ] = useState(0);
+  const [selected, setSelected] = useState(null);
+  const [revealed, setRevealed] = useState(false);
+  const [correctCount, setCorrectCount] = useState(0);
+  const [stats, setStats] = useState({ correct: 0, wrong: 0, streak: 0 });
+  const scopeLabel = currentScope === "期中" ? "期中考" : currentScope === "期末" ? "期末考" : "全範圍";
+
+  const fetchFromSheet = async (url) => {
+    const id = extractSheetId(url);
+    if (!id) { setLoading(false); return; }
+    setLoading(true);
+    try {
+      const res = await fetch(`https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv`);
+      const text = await res.text();
+      const parsed = parseSheetCSV(text);
+      if (parsed.length > 0) { setAllQuestions(parsed); setSource("sheet"); }
+      else { setAllQuestions(DEFAULT_QUESTIONS); setSource("builtin"); }
+    } catch { setAllQuestions(DEFAULT_QUESTIONS); setSource("builtin"); }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const r = await window.storage.get("econ-quiz-sheet-url");
+        if (r?.value) { setSheetUrl(r.value); await fetchFromSheet(r.value); }
+        else { setLoading(false); }
+      } catch { setLoading(false); }
+    })();
+  }, []);
+
+  const handleSaveSettings = async (url) => {
+    setSheetUrl(url); setShowSettings(false);
+    try { await window.storage.set("econ-quiz-sheet-url", url); } catch {}
+    if (url.trim()) { await fetchFromSheet(url); }
+    else { setAllQuestions(DEFAULT_QUESTIONS); setSource("builtin"); }
+  };
+
+  useEffect(() => { window.__resetStats = () => setStats({ correct: 0, wrong: 0, streak: 0 }); return () => { delete window.__resetStats; }; }, []);
+
+  const startQuiz = (scope) => {
+    setCurrentScope(scope);
+    const pool = scope === "全部" ? allQuestions : allQuestions.filter(q => q.scope === scope);
+    const size = Math.min(QUIZ_SIZE, pool.length);
+    setQuestions(shuffle(pool).slice(0, size));
+    setCurrentQ(0); setSelected(null); setRevealed(false); setCorrectCount(0); setScreen("quiz");
+  };
+
+  const handleAnswer = (idx) => {
+    setSelected(idx); setRevealed(true);
+    const isCorrect = idx === questions[currentQ].answer;
+    if (isCorrect) { setCorrectCount(c => c + 1); setStats(s => ({ ...s, correct: s.correct + 1, streak: s.streak + 1 })); }
+    else { setStats(s => ({ ...s, wrong: s.wrong + 1, streak: 0 })); }
+    setTimeout(() => {
+      if (currentQ + 1 < questions.length) { setCurrentQ(c => c + 1); setSelected(null); setRevealed(false); }
+      else { setScreen("result"); }
+    }, 2200);
+  };
+
+  useEffect(() => {
+    const s = document.createElement("style");
+    s.textContent = `@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800&display=swap');
+      @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+      @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+      @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+      @keyframes spin{to{transform:rotate(360deg)}}`;
+    document.head.appendChild(s);
+    return () => document.head.removeChild(s);
+  }, []);
+
+  if (loading) return (
+    <div style={{ ...page, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 40 }}>
+      <div style={{ width: 48, height: 48, border: "3px solid rgba(255,255,255,0.1)", borderTop: `3px solid ${T.accent}`, borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+      <p style={{ color: T.t4, fontSize: 14, marginTop: 20 }}>正在載入題庫...</p>
+    </div>
+  );
+
+  return (
+    <>
+      {showSettings && <SettingsPanel sheetUrl={sheetUrl} onSave={handleSaveSettings} onClose={() => setShowSettings(false)} />}
+      {screen === "home" && <HomeScreen onStart={startQuiz} stats={stats} onOpenSettings={() => setShowSettings(true)} allQuestions={allQuestions} source={source} />}
+      {screen === "quiz" && questions[currentQ] && <QuizScreen question={questions[currentQ]} qIndex={currentQ} total={questions.length} onAnswer={handleAnswer} selected={selected} revealed={revealed} scopeLabel={scopeLabel} />}
+      {screen === "result" && <ResultScreen correct={correctCount} total={questions.length} onRetry={() => startQuiz(currentScope)} onHome={() => setScreen("home")} scopeLabel={scopeLabel} />}
+    </>
+  );
+}
+
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<EconomicsQuiz />);
+  </script>
+</body>
+</html>
